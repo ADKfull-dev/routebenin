@@ -233,7 +233,11 @@ export function Optimize() {
                 <Plus className="h-4 w-4 text-electrique" /> Destinations ({destinations.length})
               </label>
               <AddressSearch onSelectionner={ajouterDestination} placeholder="Ajouter une destination…" />
-              <p className="mt-2 text-xs text-slate-400">Astuce : cliquez sur la carte pour ajouter un point.</p>
+              <p className="mt-2 text-xs text-nuit/45">
+                {destinations.length > 0 && destinations.length < 4
+                  ? "Astuce : ajoutez 4 destinations ou plus — c'est là que l'optimisation réduit vraiment la distance."
+                  : 'Astuce : cliquez sur la carte pour ajouter un point.'}
+              </p>
               {destinations.length > 0 && (
                 <div className="mt-3">
                   <StopList
