@@ -161,6 +161,35 @@ describe('intégration avec Haversine', () => {
   });
 });
 
+describe('réduction réelle sur des coordonnées de Cotonou', () => {
+  // 14 quartiers de Cotonou + agglomération (mêmes points que la démo).
+  const villes: Coordonnee[] = [
+    { lat: 6.3622, lng: 2.4281 }, { lat: 6.3722, lng: 2.43 }, { lat: 6.362, lng: 2.435 },
+    { lat: 6.358, lng: 2.355 }, { lat: 6.365, lng: 2.39 }, { lat: 6.3572, lng: 2.3844 },
+    { lat: 6.363, lng: 2.4 }, { lat: 6.37, lng: 2.41 }, { lat: 6.375, lng: 2.405 },
+    { lat: 6.368, lng: 2.395 }, { lat: 6.385, lng: 2.385 }, { lat: 6.373, lng: 2.415 },
+    { lat: 6.376, lng: 2.42 }, { lat: 6.4489, lng: 2.3556 }, { lat: 6.4969, lng: 2.6283 },
+  ];
+  const m = matriceHaversine(villes);
+
+  it('réduit strictement la distance face à un ordre mélangé', () => {
+    // Ordre en zigzag volontairement mauvais.
+    const zigzag = [0, 14, 1, 13, 2, 12, 3, 11, 4, 10, 5, 9, 6, 8, 7];
+    const distMauvaise = computeTourDistance(m, zigzag);
+    const opt = solveTour(m, 0);
+    expect(opt.totalDistance).toBeLessThan(distMauvaise); // strictement meilleur
+    // Gain d'au moins 20 % sur ce cas défavorable.
+    expect(opt.totalDistance).toBeLessThan(distMauvaise * 0.8);
+  });
+
+  it('réduit la distance face à l’ordre de saisie', () => {
+    const saisie = villes.map((_, i) => i);
+    const avant = computeTourDistance(m, saisie);
+    const apres = solveTour(m, 0).totalDistance;
+    expect(apres).toBeLessThan(avant); // il y a bien une réduction
+  });
+});
+
 describe('performance', () => {
   it('résout 50 points en moins de 2 secondes', () => {
     const m = matriceAleatoire(50, 777);

@@ -67,6 +67,31 @@ function deuxOpt(matrix: number[][], initial: number[]): number[] {
   return order;
 }
 
+// Or-opt : déplace un point à une meilleure position (départ fixe). Renvoie
+// true si une amélioration a été appliquée.
+function orOpt(matrix: number[][], order: number[]): boolean {
+  const n = order.length;
+  for (let i = 1; i < n; i++) {
+    const prev = order[(i - 1 + n) % n];
+    const ville = order[i];
+    const next = order[(i + 1) % n];
+    const coutRetrait = matrix[prev][ville] + matrix[ville][next] - matrix[prev][next];
+    for (let j = 1; j < n; j++) {
+      if (j === i || j === i - 1) continue;
+      const a = order[j];
+      const b = order[(j + 1) % n];
+      if (a === ville || b === ville) continue;
+      const coutInsertion = matrix[a][ville] + matrix[ville][b] - matrix[a][b];
+      if (coutInsertion + 1e-9 < coutRetrait) {
+        order.splice(i, 1);
+        order.splice(j > i ? j : j + 1, 0, ville);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function solveTour(matrix: number[][], start = 0): ResultatTournee {
   const n = matrix.length;
   if (n === 0) throw new Error('Matrice vide.');
@@ -76,8 +101,13 @@ export function solveTour(matrix: number[][], start = 0): ResultatTournee {
     const order = [start, autre];
     return { order, totalDistance: computeTourDistance(matrix, order) };
   }
-  const ameliore = deuxOpt(matrix, plusProcheVoisin(matrix, start));
-  return { order: ameliore, totalDistance: computeTourDistance(matrix, ameliore) };
+  let ordre = plusProcheVoisin(matrix, start);
+  let continuer = true;
+  while (continuer) {
+    ordre = deuxOpt(matrix, ordre);
+    continuer = orOpt(matrix, ordre);
+  }
+  return { order: ordre, totalDistance: computeTourDistance(matrix, ordre) };
 }
 
 /* ---- Distances à vol d'oiseau (repli si OSRM indisponible) ---- */

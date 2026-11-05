@@ -145,6 +145,38 @@ function inverserSegment(order: number[], i: number, j: number): void {
 }
 
 /**
+ * Étape 2 bis — Or-opt : déplace un point à une meilleure position dans la
+ * tournée (le départ, indice 0, reste fixe). Complète 2-opt : certaines
+ * améliorations qu'un simple décroisement ne trouve pas sont capturées ici.
+ * Renvoie true si une amélioration a été appliquée.
+ */
+function orOpt(matrix: number[][], order: number[]): boolean {
+  const n = order.length;
+  let ameliore = false;
+  for (let i = 1; i < n; i++) {
+    const prev = order[(i - 1 + n) % n];
+    const ville = order[i];
+    const next = order[(i + 1) % n];
+    const coutRetrait = matrix[prev][ville] + matrix[ville][next] - matrix[prev][next];
+    for (let j = 1; j < n; j++) {
+      if (j === i || j === i - 1) continue;
+      const a = order[j];
+      const b = order[(j + 1) % n];
+      if (a === ville || b === ville) continue;
+      const coutInsertion = matrix[a][ville] + matrix[ville][b] - matrix[a][b];
+      if (coutInsertion + 1e-9 < coutRetrait) {
+        // Déplace `ville` de la position i vers juste après la position j.
+        order.splice(i, 1);
+        const cible = j > i ? j : j + 1;
+        order.splice(cible, 0, ville);
+        return true; // un déplacement à la fois, puis on relance
+      }
+    }
+  }
+  return ameliore;
+}
+
+/**
  * Résout la tournée : Plus Proche Voisin puis amélioration 2-opt.
  *
  * @param matrix matrice carrée des distances (matrix[i][j] = i → j)
@@ -168,9 +200,15 @@ export function solveTour(matrix: number[][], start = 0): ResultatTournee {
     return { order, totalDistance: computeTourDistance(matrix, order) };
   }
 
-  const construit = plusProcheVoisin(matrix, start);
-  const ameliore = deuxOpt(matrix, construit);
-  return { order: ameliore, totalDistance: computeTourDistance(matrix, ameliore) };
+  // Construction gloutonne, puis amélioration : on alterne 2-opt et Or-opt
+  // jusqu'à ce qu'aucune des deux ne trouve plus d'amélioration.
+  let ordre = plusProcheVoisin(matrix, start);
+  let continuer = true;
+  while (continuer) {
+    ordre = deuxOpt(matrix, ordre);
+    continuer = orOpt(matrix, ordre); // true si Or-opt a amélioré → on reboucle
+  }
+  return { order: ordre, totalDistance: computeTourDistance(matrix, ordre) };
 }
 
 /**
