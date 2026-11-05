@@ -6,7 +6,7 @@
   "description": "Interface RouteBénin — React + Vite + TypeScript + Tailwind + Leaflet.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -p tsconfig.json && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
