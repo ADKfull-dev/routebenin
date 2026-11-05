@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    @apply bg-nuit text-slate-100;
+  }
+}
+
+/* Composants réutilisables (couche Tailwind) */
+@layer components {
+  .carte {
+    @apply rounded-2xl bg-white shadow-carte border border-slate-100
+      dark:bg-nuit-600 dark:border-white/5;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+      text-sm font-semibold transition-colors focus:outline-none
+      focus-visible:ring-2 focus-visible:ring-electrique focus-visible:ring-offset-2
+      disabled:opacity-50 disabled:cursor-not-allowed
+      dark:focus-visible:ring-offset-nuit;
+  }
+
+  .btn-primaire {
+    @apply btn bg-electrique text-white hover:bg-electrique-600;
+  }
+
+  .btn-secondaire {
+    @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200
+      dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20;
+  }
+
+  .btn-fantome {
+    @apply btn text-slate-600 hover:bg-slate-100
+      dark:text-slate-300 dark:hover:bg-white/10;
+  }
+
+  .champ {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm
+      text-slate-800 placeholder-slate-400 shadow-sm
+      focus:border-electrique focus:outline-none focus:ring-2 focus:ring-electrique/30
+      dark:bg-nuit-500 dark:border-white/10 dark:text-slate-100;
+  }
+
+  .etiquette {
+    @apply block text-sm font-medium text-slate-700 dark:text-slate-200;
+  }
+}
+
+/* La carte Leaflet doit remplir son conteneur ; coins arrondis. */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 1rem;
+  font-family: inherit;
+  z-index: 0;
+}
+
+/* Marqueurs numérotés personnalisés */
+.marqueur-numero {
+  background: transparent;
+  border: none;
+}
