@@ -1,0 +1,53 @@
+// Schéma de base de données RouteBénin.
+//
+// Choix technique : SQLite via Prisma ORM.
+// Le cahier des charges prévoit « SQLite (dev) → PostgreSQL (prod) ». SQLite est
+// retenu ici car il ne nécessite aucun serveur à installer/administrer, ce qui
+// rend l'application immédiatement fonctionnelle sous Ubuntu pour une démo ou un
+// usage mono-poste. Le passage à PostgreSQL ne demande que de changer le
+// `provider` et `DATABASE_URL` (les modèles restent identiques).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Une tournée optimisée sauvegardée (historique).
+/// Les structures complexes (arrêts, résultat) sont stockées en JSON texte,
+/// car SQLite ne possède pas de type JSON natif exploitable par Prisma.
+model Tournee {
+  id                 String   @id @default(cuid())
+  nom                String
+  creeLe             DateTime @default(now())
+
+  // Données d'entrée (sérialisées en JSON).
+  departJson         String
+  arriveeJson        String? // null = retour au départ
+  destinationsJson   String
+
+  // Résultat complet (sérialisé en JSON) pour réaffichage à l'identique.
+  resultatJson       String
+
+  // Colonnes dénormalisées pour l'affichage rapide des listes/statistiques.
+  nombreDestinations Int
+  distanceInitiale   Float
+  distanceOptimisee  Float
+  gainMetres         Float
+  gainPourcent       Float
+  source             String // "osrm" | "haversine"
+
+  @@index([creeLe])
+}
+
+/// Profil unique de l'utilisateur / de l'entreprise (application mono-utilisateur).
+model Profil {
+  id            String  @id @default("profil")
+  nomUtilisateur String?
+  nomEntreprise String?
+  ville         String?
+  prefererOsrm  Boolean @default(true)
+}
