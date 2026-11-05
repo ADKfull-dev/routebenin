@@ -1,0 +1,18 @@
+{
+  "name": "routebenin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RouteBénin — plateforme d'optimisation de tournées de livraison (TSP).",
+  "scripts": {
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently -n SERVER,CLIENT -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "test": "npm --prefix server run test",
+    "db:setup": "npm --prefix server run db:setup"
+  },
+  "devDependencies": {
+    "concurrently": "9.1.0"
+  }
+}

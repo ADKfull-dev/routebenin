@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+*.log
+.env
+.DS_Store
+# Base de données locale
+server/prisma/dev.db
+server/prisma/*.db-journal
+# Vite
+client/.vite/
