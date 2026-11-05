@@ -94,7 +94,7 @@ export function AddressSearch({ onSelectionner, placeholder = 'Rechercher une ad
       {ouvert && resultats.length > 0 && (
         <ul
           id={listeId}
-          className="carte absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1"
+          className="carte absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1 shadow-pop"
           role="listbox"
         >
           {resultats.map((r, i) => (

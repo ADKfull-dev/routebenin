@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light dark;
-}
-
 html,
 body,
 #root {
@@ -13,67 +9,67 @@ body,
 }
 
 body {
-  @apply bg-slate-50 text-slate-800 antialiased;
+  @apply bg-white text-nuit antialiased;
   font-family: 'Inter', system-ui, sans-serif;
+  /* Interlignage et rendu soignés pour un rendu premium. */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    @apply bg-nuit text-slate-100;
-  }
+/* Chiffres alignés (données de logistique : km, %, durées). */
+.chiffre {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
-/* Composants réutilisables (couche Tailwind) */
 @layer components {
+  /* Surface standard : blanc + filet fin. L'ombre est réservée aux éléments
+     réellement en relief (menus déroulants, modale), via shadow-pop. */
   .carte {
-    @apply rounded-2xl bg-white shadow-carte border border-slate-100
-      dark:bg-nuit-600 dark:border-white/5;
+    @apply rounded-2xl bg-white border border-ligne;
   }
 
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
-      text-sm font-semibold transition-colors focus:outline-none
-      focus-visible:ring-2 focus-visible:ring-electrique focus-visible:ring-offset-2
-      disabled:opacity-50 disabled:cursor-not-allowed
-      dark:focus-visible:ring-offset-nuit;
+      text-sm font-semibold transition-all duration-150 focus:outline-none
+      focus-visible:ring-2 focus-visible:ring-electrique/40 focus-visible:ring-offset-2
+      disabled:opacity-40 disabled:cursor-not-allowed;
   }
 
   .btn-primaire {
-    @apply btn bg-electrique text-white hover:bg-electrique-600;
+    @apply btn bg-electrique text-white hover:bg-electrique-600
+      shadow-[0_1px_2px_rgba(26,86,219,0.25)];
   }
 
   .btn-secondaire {
-    @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200
-      dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20;
+    @apply btn bg-white text-nuit border border-ligne hover:bg-brume;
   }
 
   .btn-fantome {
-    @apply btn text-slate-600 hover:bg-slate-100
-      dark:text-slate-300 dark:hover:bg-white/10;
+    @apply btn text-nuit/70 hover:bg-brume hover:text-nuit;
   }
 
   .champ {
-    @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm
-      text-slate-800 placeholder-slate-400 shadow-sm
-      focus:border-electrique focus:outline-none focus:ring-2 focus:ring-electrique/30
-      dark:bg-nuit-500 dark:border-white/10 dark:text-slate-100;
+    @apply w-full rounded-xl border border-ligne bg-white px-3.5 py-2.5 text-sm
+      text-nuit placeholder-nuit/35
+      focus:border-electrique focus:outline-none focus:ring-2 focus:ring-electrique/15;
   }
 
   .etiquette {
-    @apply block text-sm font-medium text-slate-700 dark:text-slate-200;
+    @apply block text-sm font-medium text-nuit;
   }
 }
 
-/* La carte Leaflet doit remplir son conteneur ; coins arrondis. */
+/* Carte Leaflet : remplit son conteneur, coins arrondis, filet fin. */
 .leaflet-container {
   height: 100%;
   width: 100%;
   border-radius: 1rem;
   font-family: inherit;
+  background: #eef1f4;
   z-index: 0;
 }
 
-/* Marqueurs numérotés personnalisés */
 .marqueur-numero {
   background: transparent;
   border: none;

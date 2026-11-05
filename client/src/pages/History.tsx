@@ -80,12 +80,14 @@ export function History() {
             {tournees.map((t) => (
               <div key={t.id} className="flex items-center justify-between gap-3 p-4">
                 <button onClick={() => ouvrirDetail(t.id)} className="min-w-0 flex-1 text-left">
-                  <p className="truncate font-medium text-slate-800 dark:text-white">{t.nom}</p>
-                  <p className="text-xs text-slate-400">
-                    {formatDate(t.creeLe)} · {t.nombreDestinations} destination{t.nombreDestinations > 1 ? 's' : ''} · {formatDistance(t.distanceOptimisee)}
+                  <p className="truncate font-medium text-nuit">{t.nom}</p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-nuit/45">
+                    <span>{formatDate(t.creeLe)}</span>
+                    <span className="chiffre">{t.nombreDestinations} destination{t.nombreDestinations > 1 ? 's' : ''}</span>
+                    <span className="chiffre">{formatDistance(t.distanceOptimisee)}</span>
                   </p>
                 </button>
-                <span className="shrink-0 rounded-full bg-succes/10 px-2.5 py-1 text-sm font-semibold text-succes">
+                <span className="chiffre shrink-0 rounded-full bg-succes/10 px-2.5 py-1 text-sm font-semibold text-succes">
                   −{formatPourcent(t.gainPourcent)}
                 </span>
                 <div className="flex shrink-0 items-center gap-1">
@@ -147,13 +149,13 @@ function DetailModal({ tournee, onFermer }: { tournee: TourneeSauvegardee; onFer
   return (
     <div className="fixed inset-0 z-[950] flex items-center justify-center bg-black/40 p-4" onClick={onFermer}>
       <div
-        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white dark:bg-nuit-600"
+        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-pop"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-100 p-4 dark:border-white/5">
+        <div className="flex items-center justify-between border-b border-ligne p-4">
           <div>
-            <h2 className="font-bold text-slate-900 dark:text-white">{tournee.nom}</h2>
-            <p className="text-xs text-slate-400">{formatDate(tournee.creeLe)}</p>
+            <h2 className="font-bold text-nuit">{tournee.nom}</h2>
+            <p className="chiffre text-xs text-nuit/45">{formatDate(tournee.creeLe)}</p>
           </div>
           <button onClick={onFermer} aria-label="Fermer" className="btn-fantome px-2 py-2">
             <X className="h-5 w-5" />

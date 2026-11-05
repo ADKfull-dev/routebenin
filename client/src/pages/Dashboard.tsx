@@ -75,14 +75,15 @@ export function Dashboard() {
                 className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-slate-800 dark:text-white">{t.nom}</p>
-                  <p className="text-xs text-slate-400">
-                    {formatDate(t.creeLe)} · {t.nombreDestinations} destination{t.nombreDestinations > 1 ? 's' : ''}
+                  <p className="truncate font-medium text-nuit">{t.nom}</p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-4 text-xs text-nuit/45">
+                    <span>{formatDate(t.creeLe)}</span>
+                    <span className="chiffre">{t.nombreDestinations} destination{t.nombreDestinations > 1 ? 's' : ''}</span>
                   </p>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">{formatDistance(t.distanceOptimisee)}</span>
-                  <span className="rounded-full bg-succes/10 px-2.5 py-1 font-semibold text-succes">
+                  <span className="chiffre text-nuit/55">{formatDistance(t.distanceOptimisee)}</span>
+                  <span className="chiffre rounded-full bg-succes/10 px-2.5 py-1 font-semibold text-succes">
                     −{formatPourcent(t.gainPourcent)}
                   </span>
                 </div>

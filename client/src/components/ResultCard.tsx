@@ -11,28 +11,30 @@ export function ResultCard({ resultat }: { resultat: ResultatOptimisation }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Gain mis en avant */}
-      <div className="rounded-2xl bg-nuit p-5 text-white">
-        <div className="flex items-center gap-2 text-sm text-slate-300">
+      {/* Gain mis en avant — l'élément héros de l'écran */}
+      <div className="rounded-2xl bg-nuit p-6 text-white">
+        <div className="flex items-center gap-2 text-sm text-white/60">
           <TrendingDown className="h-4 w-4 text-succes" />
           Distance économisée
         </div>
-        <div className="mt-1 flex items-end gap-3">
-          <span className="text-4xl font-extrabold leading-none text-succes">
+        <div className="mt-2 flex items-baseline gap-3">
+          <span className="chiffre text-6xl font-extrabold leading-none tracking-tight text-succes">
             −{formatPourcent(gainPourcent)}
           </span>
-          <span className="pb-1 text-slate-300">soit {formatDistance(gainMetres)}</span>
+          <span className="chiffre text-white/70">soit {formatDistance(gainMetres)}</span>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-xl bg-white/5 p-3">
-            <p className="text-slate-400">Avant</p>
-            <p className="font-semibold line-through decoration-alerte/60">
+        <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-xl bg-white/[0.06] p-3.5">
+            <p className="text-white/50">Avant</p>
+            <p className="chiffre mt-0.5 text-lg font-semibold text-white/70 line-through decoration-alerte/70 decoration-2">
               {formatDistance(distanceInitiale)}
             </p>
           </div>
-          <div className="rounded-xl bg-white/5 p-3">
-            <p className="text-slate-400">Après</p>
-            <p className="font-semibold text-succes">{formatDistance(distanceOptimisee)}</p>
+          <div className="rounded-xl bg-white/[0.06] p-3.5">
+            <p className="text-white/50">Après</p>
+            <p className="chiffre mt-0.5 text-lg font-semibold text-succes">
+              {formatDistance(distanceOptimisee)}
+            </p>
           </div>
         </div>
       </div>
@@ -42,19 +44,15 @@ export function ResultCard({ resultat }: { resultat: ResultatOptimisation }) {
         <div className="carte flex items-center gap-3 p-4">
           <Clock className="h-5 w-5 text-electrique" />
           <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Durée estimée</p>
-            <p className="font-semibold text-slate-800 dark:text-white">
-              {formatDuree(dureeSecondes)}
-            </p>
+            <p className="text-xs text-nuit/50">Durée estimée</p>
+            <p className="chiffre font-semibold text-nuit">{formatDuree(dureeSecondes)}</p>
           </div>
         </div>
         <div className="carte flex items-center gap-3 p-4">
           <MapPin className="h-5 w-5 text-electrique" />
           <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Destinations</p>
-            <p className="font-semibold text-slate-800 dark:text-white">
-              {resultat.nombreDestinations}
-            </p>
+            <p className="text-xs text-nuit/50">Destinations</p>
+            <p className="chiffre font-semibold text-nuit">{resultat.nombreDestinations}</p>
           </div>
         </div>
       </div>

@@ -73,7 +73,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   const Icone = toast.type === 'succes' ? CheckCircle2 : toast.type === 'erreur' ? AlertCircle : Info;
   return (
     <div
-      className={`carte flex items-start gap-3 border-l-4 p-3.5 ${styles[toast.type]} animate-[fadeIn_.2s_ease]`}
+      className={`carte flex items-start gap-3 border-l-4 p-3.5 shadow-pop ${styles[toast.type]}`}
       role="status"
     >
       <Icone className="mt-0.5 h-5 w-5 shrink-0" />
