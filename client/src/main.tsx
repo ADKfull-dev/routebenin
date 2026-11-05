@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createHashRouter, RouterProvider, Navigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import './index.css';
 import { App } from './App';
@@ -10,7 +10,7 @@ import { History } from './pages/History';
 import { Settings } from './pages/Settings';
 import { ToastProvider } from './components/Toast';
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: '/',
     element: <App />,

@@ -2,6 +2,11 @@
 
 **Optimisez vos livraisons. Gagnez du temps. Réduisez vos distances.**
 
+> 🌍 **Démo en ligne : https://adkfull-dev.github.io/routebenin/**
+> (version navigateur : l'optimisation tourne côté client, l'historique est
+> enregistré dans votre navigateur. La version full-stack ci-dessous ajoute une
+> base de données partagée.)
+
 RouteBénin est une application web qui calcule l'**ordre de passage optimal**
 d'une tournée de livraison (problème du voyageur de commerce) et l'affiche sur
 une carte interactive, avec le **gain obtenu** (« Avant 42 km → Après 29 km, −31 % »).
@@ -141,6 +146,25 @@ coordonnées sont réelles ; la **tournée est fictive**, mais les distances et 
 gain calculés sont **réels**.
 
 ---
+
+## 🌐 Déploiement (GitHub Pages)
+
+La démo en ligne est une **version 100 % navigateur** (sans backend) : le moteur
+d'optimisation tourne côté client, OSRM/Nominatim sont appelés directement, et
+l'historique utilise `localStorage`. Pour la régénérer et la publier :
+
+```bash
+cd client
+npm run build:pages          # build en mode statique (base /routebenin/)
+cd dist && touch .nojekyll
+git init -q && git checkout -b gh-pages && git add -A
+git commit -m "Déploiement"
+git push -f https://github.com/ADKfull-dev/routebenin.git gh-pages
+```
+
+Pour un déploiement **full-stack** (avec base de données partagée), hébergez le
+dossier `server/` sur un service Node (Render, Railway, Fly.io…) et le `client/`
+(build normal) sur un hébergeur statique, en pointant le proxy `/api` vers l'API.
 
 ## 📝 Licence et données
 
