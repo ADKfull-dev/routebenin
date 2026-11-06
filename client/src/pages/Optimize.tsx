@@ -2,7 +2,7 @@
  * Optimize — page centrale : saisie de la tournée (gauche) + carte (droite),
  * puis résultat d'optimisation.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Flag, Navigation, Sparkles, Wand2, RotateCcw, Save, Plus, Truck, Minus } from 'lucide-react';
 import { AddressSearch } from '../components/AddressSearch';
 import { StopList } from '../components/StopList';
@@ -38,6 +38,17 @@ export function Optimize() {
   const [nomTournee, setNomTournee] = useState('');
   const [sauvegarde, setSauvegarde] = useState(false);
   const [prefererOsrm, setPrefererOsrm] = useState(true);
+  const panneauRef = useRef<HTMLDivElement>(null);
+
+  // À l'affichage d'un résultat, revenir en haut du panneau : sinon il reste
+  // défilé à la hauteur du bouton « Optimiser » et le gain + l'envoi WhatsApp
+  // sont hors de l'écran.
+  useEffect(() => {
+    const panneau = panneauRef.current;
+    if (!resultat || !panneau) return;
+    panneau.scrollTop = 0;
+    if (panneau.getBoundingClientRect().top < 0) panneau.scrollIntoView({ block: 'start' }); // mobile
+  }, [resultat]);
 
   // Récupère la préférence « distances routières » définie dans les paramètres.
   useEffect(() => {
@@ -216,7 +227,7 @@ export function Optimize() {
   return (
     <div className="flex h-full flex-col gap-4 p-4 md:h-[100dvh] md:flex-row md:p-6">
       {/* Panneau de saisie / résultat */}
-      <div className="flex w-full flex-col gap-4 overflow-y-auto md:w-[400px] md:shrink-0">
+      <div ref={panneauRef} className="flex w-full flex-col gap-4 overflow-y-auto md:w-[400px] md:shrink-0">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white">Nouvelle tournée</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -397,16 +408,22 @@ export function Optimize() {
           </>
         ) : (
           <>
-            <ResultCard resultat={resultat} boucle={!arriveeDistincte} />
             {resultat.livreurs && resultat.livreurs.length > 1 ? (
-              <LivreursPanel
-                resultat={resultat}
-                nom={nomTournee}
-                livreurActif={livreurActif}
-                onSelectionner={setLivreurActif}
-              />
+              <>
+                <ResultCard resultat={resultat} boucle={!arriveeDistincte} />
+                <LivreursPanel
+                  resultat={resultat}
+                  nom={nomTournee}
+                  livreurActif={livreurActif}
+                  onSelectionner={setLivreurActif}
+                />
+              </>
             ) : (
-              <ExportActions resultat={resultat} boucle={!arriveeDistincte} nom={nomTournee} />
+              <ResultCard
+                resultat={resultat}
+                boucle={!arriveeDistincte}
+                actions={<ExportActions resultat={resultat} boucle={!arriveeDistincte} nom={nomTournee} />}
+              />
             )}
             {/* Enregistrement */}
             <section className="carte p-4">

@@ -181,16 +181,22 @@ function DetailModal({ tournee, onFermer }: { tournee: TourneeSauvegardee; onFer
             <MapView marqueurs={marqueurs} trace={trace} traceInitial={traceNaif} traces={traces} />
           </div>
           <div className="flex flex-col gap-4">
-            <ResultCard resultat={tournee.resultat} boucle={!arriveeDistincte} />
             {multi ? (
-              <LivreursPanel
-                resultat={tournee.resultat}
-                nom={tournee.nom}
-                livreurActif={livreurActif}
-                onSelectionner={setLivreurActif}
-              />
+              <>
+                <ResultCard resultat={tournee.resultat} boucle={!arriveeDistincte} />
+                <LivreursPanel
+                  resultat={tournee.resultat}
+                  nom={tournee.nom}
+                  livreurActif={livreurActif}
+                  onSelectionner={setLivreurActif}
+                />
+              </>
             ) : (
-              <ExportActions resultat={tournee.resultat} boucle={!arriveeDistincte} nom={tournee.nom} />
+              <ResultCard
+                resultat={tournee.resultat}
+                boucle={!arriveeDistincte}
+                actions={<ExportActions resultat={tournee.resultat} boucle={!arriveeDistincte} nom={tournee.nom} />}
+              />
             )}
           </div>
         </div>

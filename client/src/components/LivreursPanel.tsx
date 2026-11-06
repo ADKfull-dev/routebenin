@@ -3,11 +3,13 @@
  * livreur (couleur, charge, distance, durée, ordre de passage) avec son export.
  * Cliquer sur un livreur le met en évidence sur la carte.
  */
-import { ChevronDown, Truck } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ChevronDown, MessageCircle, Truck } from 'lucide-react';
+import { api } from '../lib/api';
 import type { ResultatOptimisation } from '../types';
 import { couleurLivreur, encreSur } from '../lib/couleurs';
 import { formatDistance, formatDuree } from '../lib/format';
-import { libelleCourt } from '../lib/feuilleRoute';
+import { libelleCourt, lienWhatsApp, texteFeuille } from '../lib/feuilleRoute';
 import { charge, COUT_ARRET_M, COUT_ARRET_S } from '../lib/vrp';
 import { ExportActions } from './ExportActions';
 
@@ -20,6 +22,18 @@ interface Props {
 
 export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: Props) {
   const livreurs = resultat.livreurs ?? [];
+  const [entreprise, setEntreprise] = useState<string | null>(null);
+  useEffect(() => {
+    let annule = false;
+    api
+      .obtenirProfil()
+      .then((p) => !annule && setEntreprise(p.nomEntreprise))
+      .catch(() => undefined);
+    return () => {
+      annule = true;
+    };
+  }, []);
+  const nomLivreur = (i: number) => `${nom?.trim() || 'Tournée'} — Livreur ${i + 1}`;
   // Charge de travail : temps de conduite + 5 min par livraison (ou, sans
   // durées, distance + 2 km par arrêt) — le même critère que la répartition.
   const charges = livreurs.map((l) =>
@@ -51,11 +65,12 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
           const couleur = couleurLivreur(i);
           return (
             <li key={i} className={`rounded-xl border p-3 transition ${actif ? 'border-electrique bg-electrique-50/40' : 'border-ligne'}`}>
+              <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => onSelectionner(actif ? null : i)}
                 aria-expanded={actif}
-                className="flex w-full items-center gap-3 text-left"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
               >
                 <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ background: couleur }} aria-hidden />
                 <span className="flex-1">
@@ -77,8 +92,20 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
                     />
                   </span>
                 </span>
-                <ChevronDown className={`h-4 w-4 text-nuit/40 transition ${actif ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 shrink-0 text-nuit/40 transition ${actif ? 'rotate-180' : ''}`} />
               </button>
+              <a
+                href={lienWhatsApp(texteFeuille({ resultat: l, boucle: true, nom: nomLivreur(i), entreprise }))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#128C4B] px-2.5 text-xs font-semibold text-white hover:bg-[#0f7a41]"
+                aria-label={`Envoyer la tournée du livreur ${i + 1} sur WhatsApp`}
+                title="Envoyer sur WhatsApp"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">WhatsApp</span>
+              </a>
+              </div>
               {actif && (
                 <div className="mt-3 flex flex-col gap-3">
                   <ol className="flex flex-col gap-1.5 text-sm">
@@ -100,7 +127,7 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
                   <ExportActions
                     resultat={l}
                     boucle
-                    nom={`${nom?.trim() || 'Tournée'} — Livreur ${i + 1}`}
+                    nom={nomLivreur(i)}
                     compact
                   />
                 </div>

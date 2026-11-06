@@ -2,11 +2,21 @@
  * ResultCard — présentation claire du résultat d'optimisation :
  * distance avant/après, gain en grand, durée, et ordre de passage.
  */
+import type { ReactNode } from 'react';
 import { TrendingDown, Clock, MapPin, Flag, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { ResultatOptimisation } from '../types';
 import { formatDistance, formatDuree, formatPourcent } from '../lib/format';
 
-export function ResultCard({ resultat, boucle = true }: { resultat: ResultatOptimisation; boucle?: boolean }) {
+export function ResultCard({
+  resultat,
+  boucle = true,
+  actions,
+}: {
+  resultat: ResultatOptimisation;
+  boucle?: boolean;
+  /** Bloc d'actions (envoi au livreur) placé juste sous les chiffres clés. */
+  actions?: ReactNode;
+}) {
   const { distanceInitiale, distanceOptimisee, gainMetres, gainPourcent, dureeSecondes } = resultat;
 
   // En dessous de ~4 destinations, tous les ordres donnent la même distance :
@@ -83,6 +93,8 @@ export function ResultCard({ resultat, boucle = true }: { resultat: ResultatOpti
           </div>
         </div>
       </div>
+
+      {actions}
 
       {/* Avertissement si distances à vol d'oiseau */}
       {resultat.source === 'haversine' && (
