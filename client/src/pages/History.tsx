@@ -11,6 +11,7 @@ import { ResultCard } from '../components/ResultCard';
 import { useToast } from '../components/Toast';
 import { formatDistance, formatPourcent, formatDate } from '../lib/format';
 import type { TourneeSauvegardee } from '../types';
+import { traceInitial, traceOptimise } from '../lib/traces';
 
 export function History() {
   const toast = useToast();
@@ -126,7 +127,7 @@ function DetailModal({ tournee, onFermer }: { tournee: TourneeSauvegardee; onFer
     (Math.abs(tournee.arrivee.lat - tournee.depart.lat) > 1e-7 ||
       Math.abs(tournee.arrivee.lng - tournee.depart.lng) > 1e-7);
 
-  const { marqueurs, trace } = useMemo(() => {
+  const { marqueurs, trace, traceInitial: traceNaif } = useMemo(() => {
     const etapes = tournee.resultat.etapes;
     const m: MarqueurCarte[] = etapes.map((e, idx) => {
       const estDepart = idx === 0;
@@ -140,10 +141,15 @@ function DetailModal({ tournee, onFermer }: { tournee: TourneeSauvegardee; onFer
         type: estDepart ? 'depart' : estArrivee ? 'arrivee' : 'etape',
       } as MarqueurCarte;
     });
-    const t = tournee.resultat.geometrie
-      ? tournee.resultat.geometrie.map(([lng, lat]) => [lat, lng] as [number, number])
-      : null;
-    return { marqueurs: m, trace: t };
+    const r = tournee.resultat;
+    return {
+      marqueurs: m,
+      trace: traceOptimise(r, !arriveeDistincte),
+      traceInitial:
+        r.gainPourcent >= 0.5
+          ? traceInitial(r, tournee.depart, tournee.destinations, tournee.arrivee)
+          : null,
+    };
   }, [tournee, arriveeDistincte]);
 
   return (
@@ -163,7 +169,7 @@ function DetailModal({ tournee, onFermer }: { tournee: TourneeSauvegardee; onFer
         </div>
         <div className="grid flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 md:grid-cols-2">
           <div className="h-72 overflow-hidden rounded-xl border border-slate-200 md:h-auto md:min-h-[360px] dark:border-white/10">
-            <MapView marqueurs={marqueurs} trace={trace} />
+            <MapView marqueurs={marqueurs} trace={trace} traceInitial={traceNaif} />
           </div>
           <div>
             <ResultCard resultat={tournee.resultat} />

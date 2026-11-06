@@ -2,8 +2,13 @@
  * MapView — carte interactive Leaflet.
  * Affiche des marqueurs numérotés, un tracé d'itinéraire (réel OSRM ou lignes
  * droites de repli) et permet d'ajouter un point par clic sur la carte.
+ *
+ * Si `traceInitial` est fourni, la carte propose une comparaison visuelle
+ * « tournée naïve (ordre de saisie) vs tournée optimisée », avec un tracé
+ * animé de l'itinéraire optimisé.
  */
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Play } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -20,6 +25,8 @@ interface Props {
   marqueurs: MarqueurCarte[];
   /** Tracé optimisé au format [lat, lng]. */
   trace?: [number, number][] | null;
+  /** Tracé de l'ordre de saisie [lat, lng] : active le mode comparaison. */
+  traceInitial?: [number, number][] | null;
   onClickCarte?: (lat: number, lng: number) => void;
 }
 
@@ -72,7 +79,42 @@ function GestionClic({ onClickCarte }: { onClickCarte?: (lat: number, lng: numbe
   return null;
 }
 
-export function MapView({ marqueurs, trace, onClickCarte }: Props) {
+type ModeComparaison = 'avant' | 'apres' | 'comparer';
+
+const COULEUR_OPTIMISE = '#1A56DB';
+const COULEUR_NAIF = '#E02424';
+const DUREE_ANIMATION_MS = 2200;
+
+/**
+ * Révèle progressivement un tracé (effet « l'itinéraire se dessine »).
+ * Renvoie le nombre de points à afficher ; `jeton` relance l'animation.
+ */
+function useTraceProgressif(ligne: [number, number][], actif: boolean, jeton: number): number {
+  const [visibles, setVisibles] = useState(ligne.length);
+  useEffect(() => {
+    const respecteMouvement =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!actif || ligne.length < 2 || respecteMouvement) {
+      setVisibles(ligne.length);
+      return;
+    }
+    let raf = 0;
+    const debut = performance.now();
+    const pas = (t: number) => {
+      const p = Math.min(1, (t - debut) / DUREE_ANIMATION_MS);
+      const facilite = 1 - Math.pow(1 - p, 3); // ease-out
+      setVisibles(Math.max(2, Math.ceil(facilite * ligne.length)));
+      if (p < 1) raf = requestAnimationFrame(pas);
+    };
+    setVisibles(2);
+    raf = requestAnimationFrame(pas);
+    return () => cancelAnimationFrame(raf);
+  }, [ligne, actif, jeton]);
+  return Math.min(visibles, ligne.length);
+}
+
+export function MapView({ marqueurs, trace, traceInitial, onClickCarte }: Props) {
   // Repli : si pas de tracé OSRM, relier les marqueurs par des lignes droites.
   const traceDroite = useMemo<[number, number][]>(
     () => marqueurs.map((m) => [m.lat, m.lng]),
@@ -80,23 +122,101 @@ export function MapView({ marqueurs, trace, onClickCarte }: Props) {
   );
   const ligne = trace && trace.length > 1 ? trace : traceDroite;
 
+  const comparaison = !!traceInitial && traceInitial.length > 1;
+  const [mode, setMode] = useState<ModeComparaison>('comparer');
+  const [jeton, setJeton] = useState(0);
+  const visibles = useTraceProgressif(ligne, comparaison && mode !== 'avant', jeton);
+  const ligneAffichee = comparaison ? ligne.slice(0, visibles) : ligne;
+
+  const montrerNaif = comparaison && mode !== 'apres';
+  const montrerOptimise = !comparaison || mode !== 'avant';
+
+  const choisir = (m: ModeComparaison) => {
+    setMode(m);
+    setJeton((j) => j + 1);
+  };
+
   return (
-    <MapContainer center={CENTRE_COTONOU} zoom={12} className="h-full w-full" scrollWheelZoom>
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      {ligne.length > 1 && (
-        <Polyline
-          positions={ligne}
-          pathOptions={{ color: '#2563EB', weight: 5, opacity: 0.85 }}
+    <div className="relative h-full w-full">
+      <MapContainer center={CENTRE_COTONOU} zoom={12} className="h-full w-full" scrollWheelZoom>
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {montrerNaif && traceInitial && (
+          <Polyline
+            positions={traceInitial}
+            pathOptions={{
+              color: COULEUR_NAIF,
+              weight: mode === 'avant' ? 5 : 4,
+              opacity: mode === 'avant' ? 0.85 : 0.6,
+              dashArray: mode === 'avant' ? undefined : '8 8',
+            }}
+          />
+        )}
+        {montrerOptimise && ligneAffichee.length > 1 && (
+          <Polyline
+            positions={ligneAffichee}
+            pathOptions={{ color: COULEUR_OPTIMISE, weight: 5, opacity: 0.9 }}
+          />
+        )}
+        {marqueurs.map((m) => (
+          <Marker key={m.id} position={[m.lat, m.lng]} icon={iconeMarqueur(m)} title={m.label} />
+        ))}
+        <AjusterVue marqueurs={marqueurs} />
+        <GestionClic onClickCarte={onClickCarte} />
+      </MapContainer>
+
+      {comparaison && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[500] flex justify-center px-3">
+          <div className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-xl border border-ligne bg-white/95 p-1.5 text-xs shadow-pop">
+            <div className="flex rounded-lg bg-brume p-0.5" role="group" aria-label="Comparer les tracés">
+              {(
+                [
+                  ['avant', 'Avant'],
+                  ['apres', 'Après'],
+                  ['comparer', 'Comparer'],
+                ] as const
+              ).map(([m, libelle]) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => choisir(m)}
+                  aria-pressed={mode === m}
+                  className={`rounded-md px-3 py-1.5 font-medium transition ${
+                    mode === m ? 'bg-white text-nuit shadow-carte' : 'text-nuit/55 hover:text-nuit'
+                  }`}
+                >
+                  {libelle}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setJeton((j) => j + 1)}
+              disabled={mode === 'avant'}
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 font-medium text-electrique hover:bg-electrique-50 disabled:opacity-40"
+              aria-label="Rejouer l'animation"
+            >
+              <Play className="h-3.5 w-3.5" /> Rejouer
+            </button>
+            <div className="flex items-center gap-3 px-1 text-nuit/60">
+              {mode !== 'apres' && (
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-0.5 w-4 border-t-2 border-dashed" style={{ borderColor: COULEUR_NAIF }} />
+                  Ordre de saisie
+                </span>
+              )}
+              {mode !== 'avant' && (
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-1 w-4 rounded" style={{ background: COULEUR_OPTIMISE }} />
+                  Optimisé
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       )}
-      {marqueurs.map((m) => (
-        <Marker key={m.id} position={[m.lat, m.lng]} icon={iconeMarqueur(m)} title={m.label} />
-      ))}
-      <AjusterVue marqueurs={marqueurs} />
-      <GestionClic onClickCarte={onClickCarte} />
-    </MapContainer>
+    </div>
   );
 }

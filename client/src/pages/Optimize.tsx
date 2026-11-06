@@ -13,6 +13,7 @@ import { useToast } from '../components/Toast';
 import { api, ApiError } from '../lib/api';
 import type { Arret, ResultatOptimisation } from '../types';
 import { DEPART_DEMO, DESTINATIONS_DEMO } from '../lib/demoCotonou';
+import { traceInitial as calculerTraceInitial, traceOptimise } from '../lib/traces';
 
 const memeLieu = (a: Arret, b: Arret) =>
   Math.abs(a.lat - b.lat) < 1e-7 && Math.abs(a.lng - b.lng) < 1e-7;
@@ -47,9 +48,10 @@ export function Optimize() {
   const arriveeDistincte = arrivee !== null && depart !== null && !memeLieu(arrivee, depart);
 
   // Marqueurs + tracé pour la carte (selon qu'on a un résultat ou non).
-  const { marqueurs, trace } = useMemo<{
+  const { marqueurs, trace, traceInitial } = useMemo<{
     marqueurs: MarqueurCarte[];
     trace: [number, number][] | null;
+    traceInitial: [number, number][] | null;
   }>(() => {
     if (resultat) {
       const etapes = resultat.etapes;
@@ -65,10 +67,15 @@ export function Optimize() {
           type: estDepart ? 'depart' : estArrivee ? 'arrivee' : 'etape',
         };
       });
-      const t = resultat.geometrie
-        ? resultat.geometrie.map(([lng, lat]) => [lat, lng] as [number, number])
-        : null;
-      return { marqueurs: m, trace: t };
+      // Comparaison avant/après seulement s'il y a un vrai gain à montrer.
+      const avecComparaison = depart !== null && resultat.gainPourcent >= 0.5;
+      return {
+        marqueurs: m,
+        trace: traceOptimise(resultat, !arriveeDistincte),
+        traceInitial: avecComparaison
+          ? calculerTraceInitial(resultat, depart, destinations, arrivee)
+          : null,
+      };
     }
 
     // Avant optimisation : départ + destinations (ordre de saisie) + arrivée.
@@ -79,7 +86,7 @@ export function Optimize() {
     );
     if (arriveeDistincte && arrivee)
       m.push({ id: arrivee.id, lat: arrivee.lat, lng: arrivee.lng, label: arrivee.label, type: 'arrivee' });
-    return { marqueurs: m, trace: null };
+    return { marqueurs: m, trace: null, traceInitial: null };
   }, [resultat, depart, destinations, arrivee, arriveeDistincte]);
 
   const reinitialiserResultat = () => {
@@ -322,7 +329,12 @@ export function Optimize() {
 
       {/* Carte */}
       <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
-        <MapView marqueurs={marqueurs} trace={trace} onClickCarte={clicCarte} />
+        <MapView
+          marqueurs={marqueurs}
+          trace={trace}
+          traceInitial={traceInitial}
+          onClickCarte={resultat ? undefined : clicCarte}
+        />
         {marqueurs.length === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-4 z-[500] flex justify-center px-4">
             <div className="pointer-events-auto rounded-xl bg-white/95 px-4 py-2 text-sm text-slate-600 shadow-carte dark:bg-nuit-600/95 dark:text-slate-300">

@@ -42,6 +42,8 @@ export interface ResultatOptimisation {
   nombreDestinations: number;
   source: SourceDistance;
   geometrie: [number, number][] | null;
+  /** Géométrie du tracé dans l'ordre de saisie (comparaison avant/après). */
+  geometrieInitiale: [number, number][] | null;
 }
 
 export class EntreeInvalideError extends Error {
@@ -167,16 +169,21 @@ export async function optimiserTournee(
   const gainMetres = Math.max(0, distanceInitiale - distanceOptimisee);
   const gainPourcent = distanceInitiale > 0 ? (gainMetres / distanceInitiale) * 100 : 0;
 
-  // Tracé routier réel si OSRM est disponible ; sinon null (lignes droites côté carte).
-  let geometrie: [number, number][] | null = null;
-  if (source === 'osrm') {
+  // Tracés routiers réels si OSRM est disponible ; sinon null (lignes droites côté carte).
+  // On trace aussi l'ordre de saisie pour la comparaison visuelle « naïf vs optimisé ».
+  const noeudsInitiaux = arriveeDistincte ? noeuds : [...noeuds, depart];
+  const tracer = async (pts: Arret[]): Promise<[number, number][] | null> => {
     try {
-      const trace = await traceItineraire(noeudsItineraire.map((a) => ({ lat: a.lat, lng: a.lng })));
-      geometrie = trace.geometrie;
+      const t = await traceItineraire(pts.map((a) => ({ lat: a.lat, lng: a.lng })));
+      return t.geometrie;
     } catch {
-      geometrie = null;
+      return null;
     }
-  }
+  };
+  const [geometrie, geometrieInitiale] =
+    source === 'osrm'
+      ? await Promise.all([tracer(noeudsItineraire), tracer(noeudsInitiaux)])
+      : [null, null];
 
   return {
     etapes: ordreOptimise.map((i, position) => ({ position, arret: noeuds[i] })),
@@ -188,5 +195,6 @@ export async function optimiserTournee(
     nombreDestinations: destinations.length,
     source,
     geometrie,
+    geometrieInitiale,
   };
 }

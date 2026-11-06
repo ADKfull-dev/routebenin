@@ -50,6 +50,8 @@ export interface ResultatOptimisation {
   source: SourceDistance;
   /** Géométrie du tracé optimisé [ [lng,lat], ... ] si fournie par OSRM. */
   geometrie: [number, number][] | null;
+  /** Géométrie du tracé dans l'ordre de saisie (absente des anciennes tournées). */
+  geometrieInitiale?: [number, number][] | null;
 }
 
 /** Une tournée sauvegardée (historique). */

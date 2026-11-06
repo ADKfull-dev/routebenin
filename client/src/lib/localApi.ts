@@ -174,14 +174,14 @@ export const localApi: ApiClient = {
     const gainMetres = Math.max(0, distanceInitiale - distanceOptimisee);
     const gainPourcent = distanceInitiale > 0 ? (gainMetres / distanceInitiale) * 100 : 0;
 
-    let geometrie: [number, number][] | null = null;
-    if (source === 'osrm') {
-      try {
-        geometrie = await osrmRoute(noeudsItineraire.map((a) => ({ lat: a.lat, lng: a.lng })));
-      } catch {
-        geometrie = null;
-      }
-    }
+    // Tracés routiers : ordre optimisé + ordre de saisie (comparaison avant/après).
+    const noeudsInitiaux = arriveeDistincte ? noeuds : [...noeuds, depart];
+    const tracer = (pts: Arret[]) =>
+      osrmRoute(pts.map((a) => ({ lat: a.lat, lng: a.lng }))).catch(() => null);
+    const [geometrie, geometrieInitiale] =
+      source === 'osrm'
+        ? await Promise.all([tracer(noeudsItineraire), tracer(noeudsInitiaux)])
+        : [null, null];
 
     return {
       etapes: ordreOptimise.map((i, position) => ({ position, arret: noeuds[i] })),
@@ -193,6 +193,7 @@ export const localApi: ApiClient = {
       nombreDestinations: destinations.length,
       source,
       geometrie,
+      geometrieInitiale,
     };
   },
 

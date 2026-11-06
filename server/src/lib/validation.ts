@@ -28,6 +28,7 @@ const resultatSchema = z.object({
   nombreDestinations: z.number(),
   source: z.enum(['osrm', 'haversine']),
   geometrie: z.array(z.tuple([z.number(), z.number()])).nullable(),
+  geometrieInitiale: z.array(z.tuple([z.number(), z.number()])).nullable().optional(),
 });
 
 export const sauvegardeSchema = z.object({
