@@ -1,6 +1,6 @@
 {
   "meta": {
-    "genereLe": "2026-11-06T11:18:09.592Z",
+    "genereLe": "2026-11-06T11:43:34.407Z",
     "node": "v22.11.0",
     "distances": "Haversine (vol d’oiseau), points aléatoires à graine fixe dans l’emprise Cotonou / Abomey-Calavi"
   },
@@ -124,72 +124,72 @@
     {
       "n": 10,
       "tempsMs": {
-        "complet": 0.008,
-        "ppv": 0.002,
-        "ppv2opt": 0.005
+        "complet": 0.018,
+        "ppv": 0.003,
+        "ppv2opt": 0.009
       },
       "ameliorationVsPpv": 8.03
     },
     {
       "n": 20,
       "tempsMs": {
-        "complet": 0.041,
+        "complet": 0.06,
         "ppv": 0.006,
-        "ppv2opt": 0.017
+        "ppv2opt": 0.043
       },
       "ameliorationVsPpv": 17.42
     },
     {
       "n": 30,
       "tempsMs": {
-        "complet": 0.082,
-        "ppv": 0.012,
-        "ppv2opt": 0.058
+        "complet": 0.105,
+        "ppv": 0.013,
+        "ppv2opt": 0.045
       },
       "ameliorationVsPpv": 10.9
     },
     {
       "n": 50,
       "tempsMs": {
-        "complet": 0.256,
+        "complet": 0.304,
         "ppv": 0.028,
-        "ppv2opt": 0.123
+        "ppv2opt": 0.152
       },
       "ameliorationVsPpv": 13.5
     },
     {
       "n": 75,
       "tempsMs": {
-        "complet": 0.993,
-        "ppv": 0.061,
-        "ppv2opt": 0.289
+        "complet": 1.233,
+        "ppv": 0.063,
+        "ppv2opt": 0.35
       },
       "ameliorationVsPpv": 16.99
     },
     {
       "n": 100,
       "tempsMs": {
-        "complet": 1.667,
-        "ppv": 0.107,
-        "ppv2opt": 0.588
+        "complet": 2.102,
+        "ppv": 0.108,
+        "ppv2opt": 0.6
       },
       "ameliorationVsPpv": 12.44
     },
     {
       "n": 150,
       "tempsMs": {
-        "complet": 5.473,
-        "ppv": 0.241,
-        "ppv2opt": 1.368
+        "complet": 6.409,
+        "ppv": 0.235,
+        "ppv2opt": 1.612
       },
       "ameliorationVsPpv": 14.98
     },
     {
       "n": 200,
       "tempsMs": {
-        "complet": 14.094,
-        "ppv": 0.433,
-        "ppv2opt": 2.933
+        "complet": 17.09,
+        "ppv": 0.447,
+        "ppv2opt": 3.51
       },
       "ameliorationVsPpv": 17.08
     }

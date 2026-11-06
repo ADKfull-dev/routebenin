@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Play } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import { encreSur } from '../lib/couleurs';
 
 export interface MarqueurCarte {
   id: string;
@@ -19,6 +20,17 @@ export interface MarqueurCarte {
   label: string;
   numero?: number;
   type: 'depart' | 'arrivee' | 'etape' | 'simple';
+  /** Couleur imposée (mode multi-livreurs). */
+  couleur?: string;
+  /** Affiché en retrait (un autre livreur est sélectionné). */
+  attenue?: boolean;
+}
+
+/** Tracé coloré supplémentaire (mode multi-livreurs). */
+export interface TraceCarte {
+  positions: [number, number][];
+  couleur: string;
+  attenue?: boolean;
 }
 
 interface Props {
@@ -27,6 +39,8 @@ interface Props {
   trace?: [number, number][] | null;
   /** Tracé de l'ordre de saisie [lat, lng] : active le mode comparaison. */
   traceInitial?: [number, number][] | null;
+  /** Plusieurs tracés colorés (multi-livreurs) : remplace `trace`. */
+  traces?: TraceCarte[] | null;
   onClickCarte?: (lat: number, lng: number) => void;
 }
 
@@ -34,7 +48,7 @@ const CENTRE_COTONOU: [number, number] = [6.37, 2.42];
 
 function iconeMarqueur(m: MarqueurCarte): L.DivIcon {
   const couleur =
-    m.type === 'depart' ? '#0B1F3A' : m.type === 'arrivee' ? '#DC2626' : '#2563EB';
+    m.couleur ?? (m.type === 'depart' ? '#0B1F3A' : m.type === 'arrivee' ? '#DC2626' : '#2563EB');
   const contenu =
     m.type === 'depart' ? 'D' : m.type === 'arrivee' ? 'A' : String(m.numero ?? '');
   const html = `
@@ -42,8 +56,8 @@ function iconeMarqueur(m: MarqueurCarte): L.DivIcon {
       display:flex;align-items:center;justify-content:center;
       width:30px;height:30px;border-radius:50% 50% 50% 0;
       transform:rotate(-45deg);
-      background:${couleur};color:#fff;font-weight:700;font-size:13px;
-      border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);">
+      background:${couleur};color:${encreSur(couleur)};font-weight:700;font-size:13px;
+      border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);opacity:${m.attenue ? 0.3 : 1};">
       <span style="transform:rotate(45deg)">${contenu}</span>
     </div>`;
   return L.divIcon({
@@ -114,7 +128,8 @@ function useTraceProgressif(ligne: [number, number][], actif: boolean, jeton: nu
   return Math.min(visibles, ligne.length);
 }
 
-export function MapView({ marqueurs, trace, traceInitial, onClickCarte }: Props) {
+export function MapView({ marqueurs, trace, traceInitial, traces, onClickCarte }: Props) {
+  const multi = !!traces && traces.length > 0;
   // Repli : si pas de tracé OSRM, relier les marqueurs par des lignes droites.
   const traceDroite = useMemo<[number, number][]>(
     () => marqueurs.map((m) => [m.lat, m.lng]),
@@ -122,14 +137,14 @@ export function MapView({ marqueurs, trace, traceInitial, onClickCarte }: Props)
   );
   const ligne = trace && trace.length > 1 ? trace : traceDroite;
 
-  const comparaison = !!traceInitial && traceInitial.length > 1;
+  const comparaison = !multi && !!traceInitial && traceInitial.length > 1;
   const [mode, setMode] = useState<ModeComparaison>('comparer');
   const [jeton, setJeton] = useState(0);
   const visibles = useTraceProgressif(ligne, comparaison && mode !== 'avant', jeton);
   const ligneAffichee = comparaison ? ligne.slice(0, visibles) : ligne;
 
   const montrerNaif = comparaison && mode !== 'apres';
-  const montrerOptimise = !comparaison || mode !== 'avant';
+  const montrerOptimise = !multi && (!comparaison || mode !== 'avant');
 
   const choisir = (m: ModeComparaison) => {
     setMode(m);
@@ -137,7 +152,9 @@ export function MapView({ marqueurs, trace, traceInitial, onClickCarte }: Props)
   };
 
   return (
-    <div className="relative h-full w-full">
+    // Remplit le conteneur parent (qui doit être `relative` et avoir une hauteur,
+    // même minimale) : `h-full` seul donne 0 px quand le parent n'a qu'un min-height.
+    <div className="absolute inset-0">
       <MapContainer center={CENTRE_COTONOU} zoom={12} className="h-full w-full" scrollWheelZoom>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -160,6 +177,14 @@ export function MapView({ marqueurs, trace, traceInitial, onClickCarte }: Props)
             pathOptions={{ color: COULEUR_OPTIMISE, weight: 5, opacity: 0.9 }}
           />
         )}
+        {multi &&
+          traces!.map((t, i) => (
+            <Polyline
+              key={`${i}-${t.couleur}-${t.attenue ? 'a' : 'n'}`}
+              positions={t.positions}
+              pathOptions={{ color: t.couleur, weight: t.attenue ? 3 : 5, opacity: t.attenue ? 0.2 : 0.9 }}
+            />
+          ))}
         {marqueurs.map((m) => (
           <Marker key={m.id} position={[m.lat, m.lng]} icon={iconeMarqueur(m)} title={m.label} />
         ))}

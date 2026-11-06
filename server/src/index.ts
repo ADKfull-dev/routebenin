@@ -1,12 +1,19 @@
 /**
  * Point d'entrée de l'API RouteBénin (Express).
  */
+import net from 'node:net';
 import express from 'express';
 import cors from 'cors';
 import type { Request, Response, NextFunction } from 'express';
 import { env } from './lib/env.js';
 import { apiRouter } from './routes/index.js';
 import { HttpError } from './lib/http.js';
+
+// Node essaie IPv6 puis IPv4 avec seulement 250 ms par tentative (« happy
+// eyeballs »). Sur une connexion lente (mobile, Afrique de l'Ouest), toutes les
+// tentatives échouent et OSRM/Nominatim paraissent « injoignables ». On laisse
+// 2,5 s par adresse.
+net.setDefaultAutoSelectFamilyAttemptTimeout(2500);
 
 const app = express();
 

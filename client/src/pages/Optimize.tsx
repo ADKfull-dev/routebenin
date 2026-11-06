@@ -3,18 +3,21 @@
  * puis résultat d'optimisation.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Flag, Navigation, Sparkles, Wand2, RotateCcw, Save, Plus } from 'lucide-react';
+import { Flag, Navigation, Sparkles, Wand2, RotateCcw, Save, Plus, Truck, Minus } from 'lucide-react';
 import { AddressSearch } from '../components/AddressSearch';
 import { StopList } from '../components/StopList';
 import { MapView, type MarqueurCarte } from '../components/MapView';
 import { ResultCard } from '../components/ResultCard';
 import { ExportActions } from '../components/ExportActions';
+import { LivreursPanel } from '../components/LivreursPanel';
 import { Spinner } from '../components/ui';
 import { useToast } from '../components/Toast';
 import { api, ApiError } from '../lib/api';
 import type { Arret, ResultatOptimisation } from '../types';
 import { DEPART_DEMO, DESTINATIONS_DEMO } from '../lib/demoCotonou';
-import { traceInitial as calculerTraceInitial, traceOptimise } from '../lib/traces';
+import { traceInitial as calculerTraceInitial, traceOptimise, carteMultiLivreurs } from '../lib/traces';
+import { NOMBRE_MAX_LIVREURS } from '../lib/couleurs';
+import type { TraceCarte } from '../components/MapView';
 
 const memeLieu = (a: Arret, b: Arret) =>
   Math.abs(a.lat - b.lat) < 1e-7 && Math.abs(a.lng - b.lng) < 1e-7;
@@ -23,7 +26,11 @@ export function Optimize() {
   const toast = useToast();
   const [depart, setDepart] = useState<Arret | null>(null);
   const [destinations, setDestinations] = useState<Arret[]>([]);
-  const [arrivee, setArrivee] = useState<Arret | null>(null);
+  const [arriveeSaisie, setArrivee] = useState<Arret | null>(null);
+  const [nbLivreurs, setNbLivreurs] = useState(1);
+  const [livreurActif, setLivreurActif] = useState<number | null>(null);
+  // En multi-livreurs, chacun revient au départ : l'arrivée est ignorée.
+  const arrivee = nbLivreurs > 1 ? null : arriveeSaisie;
 
   const [resultat, setResultat] = useState<ResultatOptimisation | null>(null);
   const [chargement, setChargement] = useState(false);
@@ -49,11 +56,15 @@ export function Optimize() {
   const arriveeDistincte = arrivee !== null && depart !== null && !memeLieu(arrivee, depart);
 
   // Marqueurs + tracé pour la carte (selon qu'on a un résultat ou non).
-  const { marqueurs, trace, traceInitial } = useMemo<{
+  const { marqueurs, trace, traceInitial, traces } = useMemo<{
     marqueurs: MarqueurCarte[];
     trace: [number, number][] | null;
     traceInitial: [number, number][] | null;
+    traces?: TraceCarte[];
   }>(() => {
+    if (resultat?.livreurs && resultat.livreurs.length > 1) {
+      return { ...carteMultiLivreurs(resultat, livreurActif), trace: null, traceInitial: null };
+    }
     if (resultat) {
       const etapes = resultat.etapes;
       const m: MarqueurCarte[] = etapes.map((e, idx) => {
@@ -88,10 +99,11 @@ export function Optimize() {
     if (arriveeDistincte && arrivee)
       m.push({ id: arrivee.id, lat: arrivee.lat, lng: arrivee.lng, label: arrivee.label, type: 'arrivee' });
     return { marqueurs: m, trace: null, traceInitial: null };
-  }, [resultat, depart, destinations, arrivee, arriveeDistincte]);
+  }, [resultat, depart, destinations, arrivee, arriveeDistincte, livreurActif]);
 
   const reinitialiserResultat = () => {
     setResultat(null);
+    setLivreurActif(null);
     setNomTournee('');
   };
 
@@ -158,8 +170,15 @@ export function Optimize() {
     if (!peutOptimiser || !depart) return;
     setChargement(true);
     setResultat(null);
+    setLivreurActif(null);
     try {
-      const r = await api.optimiser({ depart, destinations, arrivee, prefererOsrm });
+      const r = await api.optimiser({
+        depart,
+        destinations,
+        arrivee,
+        prefererOsrm,
+        nombreLivreurs: Math.min(nbLivreurs, destinations.length),
+      });
       setResultat(r);
       if (r.source === 'haversine') {
         toast.info('Itinéraire estimé à vol d’oiseau (service routier indisponible).');
@@ -257,7 +276,52 @@ export function Optimize() {
               )}
             </section>
 
-            {/* Étape 3 — Arrivée (optionnelle) */}
+            {/* Étape 2 bis — Nombre de livreurs (VRP) */}
+            <section className="carte p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <label className="etiquette flex items-center gap-2" id="label-livreurs">
+                    <Truck className="h-4 w-4 text-electrique" /> Livreurs
+                  </label>
+                  <p className="mt-0.5 text-xs text-nuit/45">
+                    {nbLivreurs > 1
+                      ? 'Les adresses sont réparties équitablement ; chacun revient au départ.'
+                      : 'Plusieurs livreurs ? Répartissez la tournée entre eux.'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1" role="group" aria-labelledby="label-livreurs">
+                  <button
+                    type="button"
+                    onClick={() => { setNbLivreurs((k) => Math.max(1, k - 1)); reinitialiserResultat(); }}
+                    disabled={nbLivreurs <= 1}
+                    className="btn-secondaire h-8 w-8 justify-center p-0"
+                    aria-label="Un livreur de moins"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="chiffre w-8 text-center text-lg font-semibold text-nuit" aria-live="polite">
+                    {nbLivreurs}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setNbLivreurs((k) => Math.min(NOMBRE_MAX_LIVREURS, k + 1)); reinitialiserResultat(); }}
+                    disabled={nbLivreurs >= NOMBRE_MAX_LIVREURS}
+                    className="btn-secondaire h-8 w-8 justify-center p-0"
+                    aria-label="Un livreur de plus"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              {nbLivreurs > 1 && destinations.length > 0 && destinations.length < nbLivreurs && (
+                <p className="mt-2 text-xs text-attention">
+                  Seulement {destinations.length} destination{destinations.length > 1 ? 's' : ''} : {destinations.length} livreur{destinations.length > 1 ? 's' : ''} seront utilisés.
+                </p>
+              )}
+            </section>
+
+            {/* Étape 3 — Arrivée (optionnelle, tournée unique) */}
+            {nbLivreurs === 1 && (
             <section className="carte p-4">
               <label className="etiquette mb-2 flex items-center gap-2">
                 <Flag className="h-4 w-4 text-alerte" /> Arrivée (optionnel)
@@ -275,6 +339,7 @@ export function Optimize() {
                 <AddressSearch onSelectionner={(a) => { setArrivee(a); reinitialiserResultat(); }} placeholder="Par défaut : retour au départ" />
               )}
             </section>
+            )}
 
             {/* Actions */}
             <div className="flex flex-col gap-2">
@@ -301,8 +366,17 @@ export function Optimize() {
           </>
         ) : (
           <>
-            <ResultCard resultat={resultat} />
-            <ExportActions resultat={resultat} boucle={!arriveeDistincte} nom={nomTournee} />
+            <ResultCard resultat={resultat} boucle={!arriveeDistincte} />
+            {resultat.livreurs && resultat.livreurs.length > 1 ? (
+              <LivreursPanel
+                resultat={resultat}
+                nom={nomTournee}
+                livreurActif={livreurActif}
+                onSelectionner={setLivreurActif}
+              />
+            ) : (
+              <ExportActions resultat={resultat} boucle={!arriveeDistincte} nom={nomTournee} />
+            )}
             {/* Enregistrement */}
             <section className="carte p-4">
               <label htmlFor="nom-tournee" className="etiquette mb-2">
@@ -335,6 +409,7 @@ export function Optimize() {
           marqueurs={marqueurs}
           trace={trace}
           traceInitial={traceInitial}
+          traces={traces}
           onClickCarte={resultat ? undefined : clicCarte}
         />
         {marqueurs.length === 0 && (

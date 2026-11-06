@@ -23,6 +23,9 @@ pour d'autres villes et pays.
 - **Carte interactive** (OpenStreetMap / Leaflet) : marqueurs numérotés, tracé routier réel, départ et arrivée distincts.
 - **Résultat clair** : distance avant/après, gain en km et en %, durée estimée, ordre de passage.
 - **Historique** : consultation et suppression des tournées enregistrées.
+- **Comparaison avant/après** : tracé de l'ordre de saisie (rouge pointillé) et tracé optimisé (bleu) superposés, avec animation de l'itinéraire.
+- **Multi-livreurs (1 à 6)** : répartition équilibrée des adresses entre plusieurs livreurs partant du même point, une couleur par livreur.
+- **Envoi au livreur** : message WhatsApp prêt à partager, copie du texte, feuille de route imprimable/PDF (cases « Livré », observations, signature) et liens de navigation Google Maps.
 - **Paramètres** : profil utilisateur/entreprise, préférence distances routières.
 - **Responsive** (ordinateur, tablette, mobile) + **mode sombre** automatique.
 
@@ -36,11 +39,20 @@ Code entièrement maison (aucune bibliothèque d'optimisation externe), dans
 1. **Modélisation en graphe** : chaque point est un nœud, les arêtes portent la distance.
 2. **Matrice de distances** : distances routières réelles via **OSRM**, sinon repli **Haversine** (à vol d'oiseau).
 3. **Plus Proche Voisin** : construction gloutonne d'une première tournée.
-4. **2-opt** : amélioration locale par décroisement des segments, jusqu'à stabilité.
-5. **Comparaison** avant/après pour mesurer le gain réel.
+4. **2-opt** : amélioration locale par décroisement des segments, jusqu'à stabilité
+   (gain exact y compris pour les distances routières asymétriques — sens uniques).
+5. **Or-opt** : déplacement d'un point à une meilleure position, alterné avec 2-opt.
+6. **Comparaison** avant/après pour mesurer le gain réel.
+7. **Multi-livreurs (VRP)** — `vrp.ts` : balayage angulaire autour du dépôt
+   (tous les points de départ essayés), TSP par secteur, puis échanges et
+   déplacements entre tournées. Charge plafonnée à ⌈n / K⌉ arrêts par livreur.
 
 Le TSP étant NP-difficile, cette approche offre un excellent compromis
 qualité/vitesse (optimum exact vérifié par force brute sur les petits cas dans les tests).
+
+**Mesures** : `npm run bench` régénère [`docs/benchmarks/BENCHMARKS.md`](docs/benchmarks/BENCHMARKS.md)
+(écart à l'optimum, temps de calcul selon N, gain vs ordre de saisie) avec les
+figures SVG/PNG prêtes pour le mémoire.
 
 ---
 
@@ -108,6 +120,7 @@ npm run dev
 ### Autres commandes
 ```bash
 npm test              # tests du moteur d'optimisation (Vitest)
+npm run bench         # benchmarks → docs/benchmarks/
 npm run build         # build de production (serveur + client)
 ```
 

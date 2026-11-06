@@ -52,6 +52,8 @@ export interface ResultatOptimisation {
   geometrie: [number, number][] | null;
   /** Géométrie du tracé dans l'ordre de saisie (absente des anciennes tournées). */
   geometrieInitiale?: [number, number][] | null;
+  /** Mode multi-livreurs : une sous-tournée par livreur (dépôt en tête, boucle fermée). */
+  livreurs?: ResultatOptimisation[] | null;
 }
 
 /** Une tournée sauvegardée (historique). */

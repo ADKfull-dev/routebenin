@@ -13,9 +13,11 @@ interface Props {
   resultat: ResultatOptimisation;
   boucle: boolean;
   nom?: string | null;
+  /** Version compacte (WhatsApp + PDF), utilisée par livreur. */
+  compact?: boolean;
 }
 
-export function ExportActions({ resultat, boucle, nom }: Props) {
+export function ExportActions({ resultat, boucle, nom, compact = false }: Props) {
   const toast = useToast();
   const [entreprise, setEntreprise] = useState<string | null>(null);
   const [copie, setCopie] = useState(false);
@@ -52,6 +54,27 @@ export function ExportActions({ resultat, boucle, nom }: Props) {
     if (!w) toast.erreur('Autorisez les fenêtres pop-up pour ouvrir la feuille de route.');
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
+
+  if (compact) {
+    return (
+      <div className="flex gap-2">
+        <a
+          href={lienWhatsApp(texteFeuille(infos))}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-primaire flex-1 justify-center bg-[#128C4B] px-2 py-1.5 text-xs hover:bg-[#0f7a41]"
+        >
+          <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+        </a>
+        <button type="button" onClick={ouvrirFeuille} className="btn-secondaire flex-1 justify-center px-2 py-1.5 text-xs">
+          <FileText className="h-3.5 w-3.5" /> PDF
+        </button>
+        <button type="button" onClick={copier} className="btn-secondaire justify-center px-2 py-1.5 text-xs" aria-label="Copier le texte">
+          {copie ? <Check className="h-3.5 w-3.5 text-succes" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <section className="carte p-4">

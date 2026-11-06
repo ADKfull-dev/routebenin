@@ -51,20 +51,38 @@ function deuxOpt(matrix: number[][], initial: number[]): number[] {
   const n = initial.length;
   if (n < 4) return initial.slice();
   const order = initial.slice();
+  // Distances OSRM asymétriques : inverser [i..j] change aussi le coût des
+  // arêtes intérieures (voir server/src/algorithms/tsp.ts).
+  const symetrique = estSymetrique(matrix);
+  const coutInversion = (i: number, j: number) => {
+    let s = 0;
+    for (let k = i; k < j; k++) s += matrix[order[k + 1]][order[k]] - matrix[order[k]][order[k + 1]];
+    return s;
+  };
   let ameliore = true;
   while (ameliore) {
     ameliore = false;
     for (let i = 1; i < n - 1; i++) {
+      let interieur = 0;
       for (let j = i + 1; j < n; j++) {
+        if (!symetrique) interieur += matrix[order[j]][order[j - 1]] - matrix[order[j - 1]][order[j]];
         const a = order[i - 1], b = order[i], c = order[j], d = order[(j + 1) % n];
-        if (matrix[a][c] + matrix[b][d] + 1e-9 < matrix[a][b] + matrix[c][d]) {
+        if (matrix[a][c] + matrix[b][d] + interieur + 1e-9 < matrix[a][b] + matrix[c][d]) {
           inverser(order, i, j);
           ameliore = true;
+          if (!symetrique) interieur = coutInversion(i, j);
         }
       }
     }
   }
   return order;
+}
+
+function estSymetrique(matrix: number[][]): boolean {
+  for (let i = 0; i < matrix.length; i++)
+    for (let j = i + 1; j < matrix.length; j++)
+      if (Math.abs(matrix[i][j] - matrix[j][i]) > 1e-9) return false;
+  return true;
 }
 
 // Or-opt : déplace un point à une meilleure position (départ fixe). Renvoie
@@ -103,7 +121,8 @@ export function solveTour(matrix: number[][], start = 0): ResultatTournee {
   }
   let ordre = plusProcheVoisin(matrix, start);
   let continuer = true;
-  while (continuer) {
+  let garde = 0;
+  while (continuer && garde++ < 10_000) {
     ordre = deuxOpt(matrix, ordre);
     continuer = orOpt(matrix, ordre);
   }

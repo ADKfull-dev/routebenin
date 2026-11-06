@@ -12,7 +12,8 @@ import { ExportActions } from '../components/ExportActions';
 import { useToast } from '../components/Toast';
 import { formatDistance, formatPourcent, formatDate } from '../lib/format';
 import type { TourneeSauvegardee } from '../types';
-import { traceInitial, traceOptimise } from '../lib/traces';
+import { traceInitial, traceOptimise, carteMultiLivreurs } from '../lib/traces';
+import { LivreursPanel } from '../components/LivreursPanel';
 
 export function History() {
   const toast = useToast();
@@ -128,7 +129,13 @@ function DetailModal({ tournee, onFermer }: { tournee: TourneeSauvegardee; onFer
     (Math.abs(tournee.arrivee.lat - tournee.depart.lat) > 1e-7 ||
       Math.abs(tournee.arrivee.lng - tournee.depart.lng) > 1e-7);
 
-  const { marqueurs, trace, traceInitial: traceNaif } = useMemo(() => {
+  const [livreurActif, setLivreurActif] = useState<number | null>(null);
+  const multi = !!tournee.resultat.livreurs && tournee.resultat.livreurs.length > 1;
+
+  const { marqueurs, trace, traceInitial: traceNaif, traces } = useMemo(() => {
+    if (multi) {
+      return { ...carteMultiLivreurs(tournee.resultat, livreurActif), trace: null, traceInitial: null };
+    }
     const etapes = tournee.resultat.etapes;
     const m: MarqueurCarte[] = etapes.map((e, idx) => {
       const estDepart = idx === 0;
@@ -146,12 +153,13 @@ function DetailModal({ tournee, onFermer }: { tournee: TourneeSauvegardee; onFer
     return {
       marqueurs: m,
       trace: traceOptimise(r, !arriveeDistincte),
+      traces: undefined,
       traceInitial:
         r.gainPourcent >= 0.5
           ? traceInitial(r, tournee.depart, tournee.destinations, tournee.arrivee)
           : null,
     };
-  }, [tournee, arriveeDistincte]);
+  }, [tournee, arriveeDistincte, multi, livreurActif]);
 
   return (
     <div className="fixed inset-0 z-[950] flex items-center justify-center bg-black/40 p-4" onClick={onFermer}>
@@ -169,12 +177,21 @@ function DetailModal({ tournee, onFermer }: { tournee: TourneeSauvegardee; onFer
           </button>
         </div>
         <div className="grid flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 md:grid-cols-2">
-          <div className="h-72 overflow-hidden rounded-xl border border-slate-200 md:h-auto md:min-h-[360px] dark:border-white/10">
-            <MapView marqueurs={marqueurs} trace={trace} traceInitial={traceNaif} />
+          <div className="relative h-72 overflow-hidden rounded-xl border border-slate-200 md:h-auto md:min-h-[360px] dark:border-white/10">
+            <MapView marqueurs={marqueurs} trace={trace} traceInitial={traceNaif} traces={traces} />
           </div>
           <div className="flex flex-col gap-4">
-            <ResultCard resultat={tournee.resultat} />
-            <ExportActions resultat={tournee.resultat} boucle={!arriveeDistincte} nom={tournee.nom} />
+            <ResultCard resultat={tournee.resultat} boucle={!arriveeDistincte} />
+            {multi ? (
+              <LivreursPanel
+                resultat={tournee.resultat}
+                nom={tournee.nom}
+                livreurActif={livreurActif}
+                onSelectionner={setLivreurActif}
+              />
+            ) : (
+              <ExportActions resultat={tournee.resultat} boucle={!arriveeDistincte} nom={tournee.nom} />
+            )}
           </div>
         </div>
       </div>

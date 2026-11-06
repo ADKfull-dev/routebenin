@@ -16,9 +16,10 @@ export const optimizeSchema = z.object({
   destinations: z.array(arretSchema).min(1, 'Ajoutez au moins une destination.'),
   arrivee: arretSchema.nullable().optional().default(null),
   prefererOsrm: z.boolean().optional().default(true),
+  nombreLivreurs: z.number().int().min(1).max(6).optional().default(1),
 });
 
-const resultatSchema = z.object({
+const resultatBaseSchema = z.object({
   etapes: z.array(z.object({ position: z.number(), arret: arretSchema })),
   distanceInitiale: z.number(),
   distanceOptimisee: z.number(),
@@ -29,6 +30,10 @@ const resultatSchema = z.object({
   source: z.enum(['osrm', 'haversine']),
   geometrie: z.array(z.tuple([z.number(), z.number()])).nullable(),
   geometrieInitiale: z.array(z.tuple([z.number(), z.number()])).nullable().optional(),
+});
+
+const resultatSchema = resultatBaseSchema.extend({
+  livreurs: z.array(resultatBaseSchema).max(6).nullable().optional(),
 });
 
 export const sauvegardeSchema = z.object({

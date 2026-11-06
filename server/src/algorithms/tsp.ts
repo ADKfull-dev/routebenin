@@ -106,13 +106,26 @@ export function deuxOpt(matrix: number[][], ordreInitial: number[]): number[] {
   if (n < 4) return ordreInitial.slice(); // pas d'amélioration possible en dessous
 
   const order = ordreInitial.slice();
-  let ameliore = true;
+  // Les distances routières (OSRM) sont ASYMÉTRIQUES (sens uniques…) :
+  // inverser le segment [i..j] change alors aussi le coût des arêtes
+  // intérieures. On en tient compte, sinon un « gain » calculé peut en
+  // réalité allonger la tournée (et faire boucler l'algorithme).
+  const symetrique = estSymetrique(matrix);
+  /** Surcoût de parcourir order[i..j] à l'envers (0 si symétrique). */
+  const coutInversion = (i: number, j: number): number => {
+    let s = 0;
+    for (let k = i; k < j; k++) s += matrix[order[k + 1]][order[k]] - matrix[order[k]][order[k + 1]];
+    return s;
+  };
 
+  let ameliore = true;
   while (ameliore) {
     ameliore = false;
     // i et j délimitent le segment [i..j] que l'on envisage d'inverser.
     for (let i = 1; i < n - 1; i++) {
+      let interieur = 0; // coutInversion(i, j), mis à jour au fil de j
       for (let j = i + 1; j < n; j++) {
+        if (!symetrique) interieur += matrix[order[j]][order[j - 1]] - matrix[order[j - 1]][order[j]];
         const a = order[i - 1];
         const b = order[i];
         const c = order[j];
@@ -121,16 +134,25 @@ export function deuxOpt(matrix: number[][], ordreInitial: number[]): number[] {
 
         // Gain = (distance des arêtes actuelles) - (distance après inversion)
         const avant = matrix[a][b] + matrix[c][d];
-        const apres = matrix[a][c] + matrix[b][d];
+        const apres = matrix[a][c] + matrix[b][d] + interieur;
 
         if (apres + 1e-9 < avant) {
           inverserSegment(order, i, j);
           ameliore = true;
+          if (!symetrique) interieur = coutInversion(i, j); // l'ordre a changé
         }
       }
     }
   }
   return order;
+}
+
+/** true si matrix[i][j] === matrix[j][i] pour tout couple (à 1e-9 près). */
+function estSymetrique(matrix: number[][]): boolean {
+  for (let i = 0; i < matrix.length; i++)
+    for (let j = i + 1; j < matrix.length; j++)
+      if (Math.abs(matrix[i][j] - matrix[j][i]) > 1e-9) return false;
+  return true;
 }
 
 /** Inverse en place le segment order[i..j] (bornes incluses). */
@@ -202,9 +224,12 @@ export function solveTour(matrix: number[][], start = 0): ResultatTournee {
 
   // Construction gloutonne, puis amélioration : on alterne 2-opt et Or-opt
   // jusqu'à ce qu'aucune des deux ne trouve plus d'amélioration.
+  // Chaque mouvement accepté raccourcit strictement la tournée, donc la boucle
+  // termine ; la garde est une simple ceinture de sécurité.
   let ordre = plusProcheVoisin(matrix, start);
   let continuer = true;
-  while (continuer) {
+  let garde = 0;
+  while (continuer && garde++ < 10_000) {
     ordre = deuxOpt(matrix, ordre);
     continuer = orOpt(matrix, ordre); // true si Or-opt a amélioré → on reboucle
   }

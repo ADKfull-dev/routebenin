@@ -6,12 +6,13 @@ import { TrendingDown, Clock, MapPin, Flag, AlertTriangle, CheckCircle2 } from '
 import type { ResultatOptimisation } from '../types';
 import { formatDistance, formatDuree, formatPourcent } from '../lib/format';
 
-export function ResultCard({ resultat }: { resultat: ResultatOptimisation }) {
+export function ResultCard({ resultat, boucle = true }: { resultat: ResultatOptimisation; boucle?: boolean }) {
   const { distanceInitiale, distanceOptimisee, gainMetres, gainPourcent, dureeSecondes } = resultat;
 
   // En dessous de ~4 destinations, tous les ordres donnent la même distance :
   // il n'y a rien à optimiser. On l'explique au lieu d'afficher « −0 % ».
   const dejaOptimale = gainPourcent < 0.5;
+  const multi = !!resultat.livreurs && resultat.livreurs.length > 1;
 
   return (
     <div className="flex flex-col gap-4">
@@ -43,6 +44,11 @@ export function ResultCard({ resultat }: { resultat: ResultatOptimisation }) {
             </span>
             <span className="chiffre text-white/70">soit {formatDistance(gainMetres)}</span>
           </div>
+          {multi && (
+            <p className="mt-2 text-xs text-white/55">
+              Par rapport à un partage des adresses entre {resultat.livreurs!.length} livreurs dans l’ordre de saisie.
+            </p>
+          )}
           <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-xl bg-white/[0.06] p-3.5">
               <p className="text-white/50">Avant</p>
@@ -65,7 +71,7 @@ export function ResultCard({ resultat }: { resultat: ResultatOptimisation }) {
         <div className="carte flex items-center gap-3 p-4">
           <Clock className="h-5 w-5 text-electrique" />
           <div>
-            <p className="text-xs text-nuit/50">Durée estimée</p>
+            <p className="text-xs text-nuit/50">{multi ? 'Durée (plus longue tournée)' : 'Durée estimée'}</p>
             <p className="chiffre font-semibold text-nuit">{formatDuree(dureeSecondes)}</p>
           </div>
         </div>
@@ -89,7 +95,8 @@ export function ResultCard({ resultat }: { resultat: ResultatOptimisation }) {
         </div>
       )}
 
-      {/* Ordre de passage optimisé */}
+      {/* Ordre de passage optimisé (en multi-livreurs : voir le panneau par livreur) */}
+      {!multi && (
       <div className="carte p-4">
         <p className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
           Ordre de passage optimisé
@@ -97,7 +104,7 @@ export function ResultCard({ resultat }: { resultat: ResultatOptimisation }) {
         <ol className="flex flex-col gap-2">
           {resultat.etapes.map((e, idx) => {
             const estDepart = idx === 0;
-            const estArrivee = idx === resultat.etapes.length - 1 && resultat.etapes.length > 1;
+            const estArrivee = !boucle && idx === resultat.etapes.length - 1 && resultat.etapes.length > 1;
             return (
               <li key={`${e.arret.id}-${idx}`} className="flex items-center gap-3 text-sm">
                 <span
@@ -116,7 +123,11 @@ export function ResultCard({ resultat }: { resultat: ResultatOptimisation }) {
             );
           })}
         </ol>
+        {boucle && resultat.etapes.length > 1 && (
+          <p className="mt-2 pl-10 text-xs text-slate-400">puis retour au départ</p>
+        )}
       </div>
+      )}
     </div>
   );
 }

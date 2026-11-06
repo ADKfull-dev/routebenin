@@ -17,6 +17,7 @@ import {
   type StatsDashboard,
 } from './apiTypes';
 import { solveTour, computeTourDistance, matriceHaversine, type Coordonnee } from './tsp';
+import { repartirTournees, repartitionNaive } from './vrp';
 
 const OSRM = 'https://router.project-osrm.org';
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
@@ -78,6 +79,61 @@ function distanceChemin(matrix: number[][], ordre: number[]): number {
   return total;
 }
 
+/* ---------- Multi-livreurs (VRP) — miroir de server/src/services/optimisation.ts ---------- */
+async function optimiserMultiLivreurs(
+  noeuds: Arret[],
+  distances: number[][],
+  durations: number[][] | null,
+  source: 'osrm' | 'haversine',
+  k: number,
+): Promise<ResultatOptimisation> {
+  const vrp = repartirTournees(distances, noeuds.map((a) => ({ lat: a.lat, lng: a.lng })), 0, k);
+  const distanceInitiale = repartitionNaive(distances, 0, k);
+  const geometries = await Promise.all(
+    vrp.tournees.map((t) =>
+      source === 'osrm'
+        ? osrmRoute([...t, 0].map((i) => ({ lat: noeuds[i].lat, lng: noeuds[i].lng }))).catch(() => null)
+        : Promise.resolve(null),
+    ),
+  );
+  const livreurs: ResultatOptimisation[] = vrp.tournees.map((t, idx) => {
+    let duree: number | null = null;
+    if (durations) {
+      duree = 0;
+      for (let i = 0; i < t.length; i++) duree += durations[t[i]][t[(i + 1) % t.length]];
+    }
+    return {
+      etapes: t.map((i, position) => ({ position, arret: noeuds[i] })),
+      distanceInitiale: vrp.distances[idx],
+      distanceOptimisee: vrp.distances[idx],
+      gainMetres: 0,
+      gainPourcent: 0,
+      dureeSecondes: duree,
+      nombreDestinations: t.length - 1,
+      source,
+      geometrie: geometries[idx],
+      geometrieInitiale: null,
+    };
+  });
+  const gainMetres = Math.max(0, distanceInitiale - vrp.total);
+  const durees = livreurs.map((l) => l.dureeSecondes);
+  return {
+    etapes: [noeuds[0], ...vrp.tournees.flatMap((t) => t.slice(1).map((i) => noeuds[i]))].map(
+      (arret, position) => ({ position, arret }),
+    ),
+    distanceInitiale,
+    distanceOptimisee: vrp.total,
+    gainMetres,
+    gainPourcent: distanceInitiale > 0 ? (gainMetres / distanceInitiale) * 100 : 0,
+    dureeSecondes: durees.every((d) => d !== null) ? Math.max(...(durees as number[])) : null,
+    nombreDestinations: noeuds.length - 1,
+    source,
+    geometrie: null,
+    geometrieInitiale: null,
+    livreurs,
+  };
+}
+
 /* ---------- Implémentation ---------- */
 export const localApi: ApiClient = {
   async geocoder(q: string): Promise<ResultatGeocodage[]> {
@@ -119,6 +175,14 @@ export const localApi: ApiClient = {
       }
     } else {
       distances = matriceHaversine(coords);
+    }
+
+    const nombreLivreurs = Math.min(entree.nombreLivreurs ?? 1, destinations.length);
+    if (nombreLivreurs > 1) {
+      if (arriveeDistincte) {
+        throw new ApiError('En mode multi-livreurs, chaque livreur revient au point de départ : retirez l’arrivée.');
+      }
+      return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs);
     }
 
     const n = noeuds.length;

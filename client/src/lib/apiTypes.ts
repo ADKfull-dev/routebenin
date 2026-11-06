@@ -13,6 +13,8 @@ export interface EntreeOptimisation {
   destinations: Arret[];
   arrivee: Arret | null;
   prefererOsrm?: boolean;
+  /** Nombre de livreurs (1 à 6 ; 1 = tournée unique). */
+  nombreLivreurs?: number;
 }
 
 export interface StatsDashboard {

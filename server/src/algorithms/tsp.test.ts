@@ -200,3 +200,47 @@ describe('performance', () => {
     expect(dt).toBeLessThan(2000);
   });
 });
+
+describe('matrices asymétriques (distances routières OSRM)', () => {
+  /** Matrice asymétrique : base symétrique + écarts aléatoires selon le sens. */
+  function matriceAsymetrique(n: number, seed: number): number[][] {
+    const m = matriceAleatoire(n, seed);
+    let s = seed * 7 + 3;
+    const rnd = () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    return m.map((ligne, i) => ligne.map((d, j) => (i === j ? 0 : d + Math.floor(rnd() * 40))));
+  }
+
+  it('termine et renvoie une permutation valide (pas de boucle infinie)', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const n = 4 + (seed % 12);
+      const m = matriceAsymetrique(n, seed);
+      const r = solveTour(m, 0);
+      expect(estPermutationValide(r.order, n, 0)).toBe(true);
+      expect(r.totalDistance).toBeCloseTo(computeTourDistance(m, r.order), 6);
+    }
+  });
+
+  it("n'est jamais pire que l'ordre de saisie", () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const m = matriceAsymetrique(12, seed);
+      const saisie = Array.from({ length: 12 }, (_, i) => i);
+      expect(solveTour(m, 0).totalDistance).toBeLessThanOrEqual(computeTourDistance(m, saisie) + 1e-9);
+    }
+  });
+
+  it("reste proche de l'optimum exact sur des distances de type routier", () => {
+    // Points réels de l'emprise de Cotonou, distances Haversine majorées de
+    // 0 à 30 % selon le sens (sens uniques, détours) : proche des matrices OSRM.
+    let s = 42;
+    const rnd = () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    const ecarts: number[] = [];
+    for (let k = 0; k < 20; k++) {
+      const pts: Coordonnee[] = Array.from({ length: 8 }, () => ({ lat: 6.34 + rnd() * 0.12, lng: 2.33 + rnd() * 0.14 }));
+      const m = matriceHaversine(pts).map((l) => l.map((d) => d * (1 + rnd() * 0.3)));
+      const opt = solveTourBruteForce(m, 0).totalDistance;
+      ecarts.push((solveTour(m, 0).totalDistance - opt) / opt);
+    }
+    const moyen = ecarts.reduce((a, b) => a + b, 0) / ecarts.length;
+    expect(moyen).toBeLessThan(0.02); // < 2 % en moyenne
+  });
+});

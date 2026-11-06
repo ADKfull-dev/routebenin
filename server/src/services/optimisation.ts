@@ -14,6 +14,7 @@
  */
 import { solveTour, computeTourDistance } from '../algorithms/tsp.js';
 import { matriceHaversine, type Coordonnee } from '../algorithms/distance.js';
+import { repartirTournees, repartitionNaive } from '../algorithms/vrp.js';
 import { matriceDistancesOSRM, traceItineraire } from './osrm.js';
 
 export interface Arret {
@@ -30,6 +31,8 @@ export interface EntreeOptimisation {
   destinations: Arret[];
   arrivee: Arret | null;
   prefererOsrm: boolean;
+  /** Nombre de livreurs (1 = tournée unique). */
+  nombreLivreurs?: number;
 }
 
 export interface ResultatOptimisation {
@@ -44,6 +47,8 @@ export interface ResultatOptimisation {
   geometrie: [number, number][] | null;
   /** Géométrie du tracé dans l'ordre de saisie (comparaison avant/après). */
   geometrieInitiale: [number, number][] | null;
+  /** Mode multi-livreurs : une sous-tournée par livreur (null sinon). */
+  livreurs?: ResultatOptimisation[] | null;
 }
 
 export class EntreeInvalideError extends Error {
@@ -97,6 +102,16 @@ export async function optimiserTournee(
 
   const coords: Coordonnee[] = noeuds.map((a) => ({ lat: a.lat, lng: a.lng }));
   const { distances, durations, source } = await obtenirMatrice(coords, prefererOsrm);
+
+  const nombreLivreurs = Math.min(entree.nombreLivreurs ?? 1, destinations.length);
+  if (nombreLivreurs > 1) {
+    if (arriveeDistincte) {
+      throw new EntreeInvalideError(
+        'En mode multi-livreurs, chaque livreur revient au point de départ : retirez l’arrivée.',
+      );
+    }
+    return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs);
+  }
 
   const n = noeuds.length;
   let ordreOptimise: number[]; // indices dans `noeuds`
@@ -196,5 +211,76 @@ export async function optimiserTournee(
     source,
     geometrie,
     geometrieInitiale,
+  };
+}
+
+/** Trace un parcours via OSRM ; null en cas d'échec (lignes droites côté carte). */
+async function tracerOuNull(pts: Arret[]): Promise<[number, number][] | null> {
+  try {
+    return (await traceItineraire(pts.map((a) => ({ lat: a.lat, lng: a.lng })))).geometrie;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Mode multi-livreurs (VRP) : répartition équilibrée des destinations entre
+ * K livreurs partant du même dépôt et y revenant (voir algorithms/vrp.ts).
+ * Le gain est mesuré par rapport à un découpage naïf de l'ordre de saisie.
+ */
+async function optimiserMultiLivreurs(
+  noeuds: Arret[],
+  distances: number[][],
+  durations: number[][] | null,
+  source: SourceDistance,
+  k: number,
+): Promise<ResultatOptimisation> {
+  const coords = noeuds.map((a) => ({ lat: a.lat, lng: a.lng }));
+  const vrp = repartirTournees(distances, coords, 0, k);
+  const distanceInitiale = repartitionNaive(distances, 0, k);
+
+  const geometries = await Promise.all(
+    vrp.tournees.map((t) =>
+      source === 'osrm' ? tracerOuNull([...t.map((i) => noeuds[i]), noeuds[0]]) : Promise.resolve(null),
+    ),
+  );
+
+  const livreurs: ResultatOptimisation[] = vrp.tournees.map((t, idx) => {
+    let duree: number | null = null;
+    if (durations) {
+      duree = 0;
+      for (let i = 0; i < t.length; i++) duree += durations[t[i]][t[(i + 1) % t.length]];
+    }
+    return {
+      etapes: t.map((i, position) => ({ position, arret: noeuds[i] })),
+      distanceInitiale: vrp.distances[idx],
+      distanceOptimisee: vrp.distances[idx],
+      gainMetres: 0,
+      gainPourcent: 0,
+      dureeSecondes: duree,
+      nombreDestinations: t.length - 1,
+      source,
+      geometrie: geometries[idx],
+      geometrieInitiale: null,
+    };
+  });
+
+  const gainMetres = Math.max(0, distanceInitiale - vrp.total);
+  const durees = livreurs.map((l) => l.dureeSecondes);
+  return {
+    etapes: [noeuds[0], ...vrp.tournees.flatMap((t) => t.slice(1).map((i) => noeuds[i]))].map(
+      (arret, position) => ({ position, arret }),
+    ),
+    distanceInitiale,
+    distanceOptimisee: vrp.total,
+    gainMetres,
+    gainPourcent: distanceInitiale > 0 ? (gainMetres / distanceInitiale) * 100 : 0,
+    // Les livreurs roulent en parallèle : la durée de la journée = la plus longue tournée.
+    dureeSecondes: durees.every((d) => d !== null) ? Math.max(...(durees as number[])) : null,
+    nombreDestinations: noeuds.length - 1,
+    source,
+    geometrie: null,
+    geometrieInitiale: null,
+    livreurs,
   };
 }
