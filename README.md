@@ -45,7 +45,10 @@ Code entièrement maison (aucune bibliothèque d'optimisation externe), dans
 6. **Comparaison** avant/après pour mesurer le gain réel.
 7. **Multi-livreurs (VRP)** — `vrp.ts` : balayage angulaire autour du dépôt
    (tous les points de départ essayés), TSP par secteur, puis échanges et
-   déplacements entre tournées. Charge plafonnée à ⌈n / K⌉ arrêts par livreur.
+   déplacements entre tournées. Deux critères :
+   - **charges équilibrées** (défaut) : charge = distance + 2 km par arrêt
+     (≈ 5 min de livraison) ; on minimise Σ charge² = K·(moyenne² + variance) ;
+   - **même nombre d'arrêts** : distance totale minimale, ⌈n / K⌉ arrêts max.
 
 Le TSP étant NP-difficile, cette approche offre un excellent compromis
 qualité/vitesse (optimum exact vérifié par force brute sur les petits cas dans les tests).

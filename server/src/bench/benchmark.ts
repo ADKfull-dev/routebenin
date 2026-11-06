@@ -30,6 +30,7 @@ import {
   solveTourBruteForce,
 } from '../algorithms/tsp.js';
 import { matriceHaversine, type Coordonnee } from '../algorithms/distance.js';
+import { charge, repartirTournees, repartitionNaive, type CritereVrp } from '../algorithms/vrp.js';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const SORTIE = resolve(ICI, '../../../docs/benchmarks');
@@ -201,6 +202,67 @@ function mesurerGain(): LigneGain[] {
 }
 
 /* ------------------------------------------------------------------ */
+/* 4. Multi-livreurs : « charges équilibrées » vs « même nombre d'arrêts » */
+/* ------------------------------------------------------------------ */
+const INSTANCES_VRP = 30;
+
+interface LigneVrp {
+  scenario: string;
+  k: number;
+  critere: CritereVrp;
+  totalKm: number;
+  chargeMaxKm: number;
+  ecartChargesKm: number; // max − min
+  gainVsNaif: number; // %
+  tempsMs: number;
+}
+
+function mesurerVrp(): LigneVrp[] {
+  const lignes: LigneVrp[] = [];
+  const scenarios = [
+    { nom: '20 adresses en ville', isole: false },
+    { nom: '20 adresses + 1 point isolé (type Porto-Novo)', isole: true },
+  ];
+  for (const sc of scenarios) {
+    for (const k of [2, 3, 4]) {
+      for (const critere of ['arrets', 'equilibre'] as CritereVrp[]) {
+        const acc = { total: 0, max: 0, ecart: 0, gain: 0, t: 0 };
+        for (let i = 0; i < INSTANCES_VRP; i++) {
+          const r = prng(70000 + 1000 * k + i);
+          const pts: Coordonnee[] = Array.from({ length: 21 }, () => ({
+            lat: EMPRISE.latMin + r() * (EMPRISE.latMax - EMPRISE.latMin),
+            lng: EMPRISE.lngMin + r() * (EMPRISE.lngMax - EMPRISE.lngMin),
+          }));
+          if (sc.isole) pts.push({ lat: 6.4969, lng: 2.6283 });
+          const D = matriceHaversine(pts);
+          const t0 = performance.now();
+          const v = repartirTournees(D, pts, 0, k, critere);
+          acc.t += performance.now() - t0;
+          const charges = v.tournees.map((t, j) => charge(v.distances[j], t.length - 1));
+          acc.total += v.total;
+          acc.max += Math.max(...charges);
+          acc.ecart += Math.max(...charges) - Math.min(...charges);
+          const naif = repartitionNaive(D, 0, k);
+          acc.gain += ((naif - v.total) / naif) * 100;
+        }
+        const m = (x: number) => x / INSTANCES_VRP;
+        lignes.push({
+          scenario: sc.nom,
+          k,
+          critere,
+          totalKm: arrondi(m(acc.total) / 1000, 1),
+          chargeMaxKm: arrondi(m(acc.max) / 1000, 1),
+          ecartChargesKm: arrondi(m(acc.ecart) / 1000, 1),
+          gainVsNaif: arrondi(m(acc.gain), 1),
+          tempsMs: arrondi(m(acc.t), 1),
+        });
+      }
+    }
+  }
+  return lignes;
+}
+
+/* ------------------------------------------------------------------ */
 /* Figures SVG (statiques, pour le mémoire)                            */
 /* ------------------------------------------------------------------ */
 const COULEURS: Record<Methode, string> = {
@@ -325,13 +387,15 @@ function main() {
   const temps = mesurerTemps();
   console.log('▶ Gain vs ordre de saisie…');
   const gain = mesurerGain();
+  console.log('▶ Multi-livreurs…');
+  const vrp = mesurerVrp();
 
   const meta = {
     genereLe: new Date().toISOString(),
     node: process.version,
     distances: 'Haversine (vol d’oiseau), points aléatoires à graine fixe dans l’emprise Cotonou / Abomey-Calavi',
   };
-  writeFileSync(resolve(SORTIE, 'resultats.json'), JSON.stringify({ meta, qualite, temps, gain }, null, 2));
+  writeFileSync(resolve(SORTIE, 'resultats.json'), JSON.stringify({ meta, qualite, temps, gain, vrp }, null, 2));
 
   const csv = (entete: string[], lignes: (string | number)[][]) =>
     [entete.join(';'), ...lignes.map((l) => l.join(';'))].join('\n') + '\n';
@@ -345,6 +409,13 @@ function main() {
   writeFileSync(
     resolve(SORTIE, 'temps.csv'),
     csv(['n', ...METHODES.map((m) => `temps_ms_${m}`), 'amelioration_vs_ppv'], temps.map((t) => [t.n, ...METHODES.map((m) => t.tempsMs[m]), t.ameliorationVsPpv])),
+  );
+  writeFileSync(
+    resolve(SORTIE, 'vrp.csv'),
+    csv(
+      ['scenario', 'k', 'critere', 'total_km', 'charge_max_km', 'ecart_charges_km', 'gain_vs_naif', 'temps_ms'],
+      vrp.map((l) => [l.scenario, l.k, l.critere, l.totalKm, l.chargeMaxKm, l.ecartChargesKm, l.gainVsNaif, l.tempsMs]),
+    ),
   );
   writeFileSync(resolve(SORTIE, 'gain.csv'), csv(['n', 'gain_moyen', 'gain_min', 'gain_max'], gain.map((g) => [g.n, g.gainMoyen, g.gainMin, g.gainMax])));
 
@@ -430,6 +501,17 @@ ce type de gain.
 |---|---|---|---|
 ${gain.map((g) => `| ${g.n} | ${v(g.gainMoyen)} % | ${v(g.gainMin)} % | ${v(g.gainMax)} % |`).join('\n')}
 
+## 4. Multi-livreurs : deux critères de répartition
+
+${INSTANCES_VRP} instances par ligne (21 points, distances Haversine). **Charge** d'un
+livreur = distance + 2 km par arrêt (≈ 5 min de livraison en ville).
+« Même nombre d'arrêts » minimise la distance totale avec au plus ⌈n/K⌉ arrêts
+par livreur ; « charges équilibrées » minimise Σ charge² (= K·(moyenne² + variance)).
+
+| Scénario | K | Critère | Distance totale | Charge max | Écart max − min | Gain vs partage naïf | Temps |
+|---|---|---|---|---|---|---|---|
+${vrp.map((l) => `| ${l.scenario} | ${l.k} | ${l.critere === 'arrets' ? 'Même nb d’arrêts' : '**Charges équilibrées**'} | ${v(l.totalKm)} km | ${v(l.chargeMaxKm)} km | ${v(l.ecartChargesKm)} km | ${v(l.gainVsNaif)} % | ${v(l.tempsMs)} ms |`).join('\n')}
+
 ## Lecture pour le mémoire
 
 - Le **PPV seul** est rapide mais s'éloigne de l'optimum dès quelques points.
@@ -443,7 +525,16 @@ ${gain.map((g) => `| ${g.n} | ${v(g.gainMoyen)} % | ${v(g.gainMin)} % | ${v(g.ga
   l'optimum de quelques dixièmes de pourcent — à comparer au coût de la force
   brute, inutilisable au-delà d'une dizaine de points.
 
-Données brutes : \`resultats.json\`, \`qualite.csv\`, \`temps.csv\`, \`gain.csv\`.
+- En multi-livreurs, les deux critères battent largement le partage naïf.
+  **Avec un point isolé**, « charges équilibrées » allège le livreur le plus
+  chargé d'environ 8 à 10 km et réduit l'écart entre livreurs de 30 à 50 %,
+  pour une distance totale égale ou inférieure. **En ville homogène**, le
+  plafond ⌈n/K⌉ équilibre déjà bien : « charges équilibrées » y raccourcit la
+  distance totale (−1 à −4 km) au prix d'un écart un peu plus grand. Σ charge²
+  arbitre entre efficacité (moyenne) et équité (variance) ; ce n'est pas un
+  critère min-max strict.
+
+Données brutes : \`resultats.json\`, \`qualite.csv\`, \`temps.csv\`, \`gain.csv\`, \`vrp.csv\`.
 `;
   writeFileSync(resolve(SORTIE, 'BENCHMARKS.md'), md);
   console.log(`✔ Résultats écrits dans ${SORTIE}`);

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "genereLe": "2026-11-06T11:43:34.407Z",
+    "genereLe": "2026-11-06T12:00:06.143Z",
     "node": "v22.11.0",
     "distances": "Haversine (vol d’oiseau), points aléatoires à graine fixe dans l’emprise Cotonou / Abomey-Calavi"
   },
@@ -124,72 +124,72 @@
     {
       "n": 10,
       "tempsMs": {
-        "complet": 0.018,
-        "ppv": 0.003,
-        "ppv2opt": 0.009
+        "complet": 0.011,
+        "ppv": 0.002,
+        "ppv2opt": 0.007
       },
       "ameliorationVsPpv": 8.03
     },
     {
       "n": 20,
       "tempsMs": {
-        "complet": 0.06,
-        "ppv": 0.006,
-        "ppv2opt": 0.043
+        "complet": 0.07,
+        "ppv": 0.009,
+        "ppv2opt": 0.024
       },
       "ameliorationVsPpv": 17.42
     },
     {
       "n": 30,
       "tempsMs": {
-        "complet": 0.105,
-        "ppv": 0.013,
-        "ppv2opt": 0.045
+        "complet": 0.1,
+        "ppv": 0.011,
+        "ppv2opt": 0.046
       },
       "ameliorationVsPpv": 10.9
     },
     {
       "n": 50,
       "tempsMs": {
-        "complet": 0.304,
+        "complet": 0.3,
         "ppv": 0.028,
-        "ppv2opt": 0.152
+        "ppv2opt": 0.145
       },
       "ameliorationVsPpv": 13.5
     },
     {
       "n": 75,
       "tempsMs": {
-        "complet": 1.233,
-        "ppv": 0.063,
-        "ppv2opt": 0.35
+        "complet": 1.32,
+        "ppv": 0.09,
+        "ppv2opt": 0.597
       },
       "ameliorationVsPpv": 16.99
     },
     {
       "n": 100,
       "tempsMs": {
-        "complet": 2.102,
-        "ppv": 0.108,
-        "ppv2opt": 0.6
+        "complet": 2.707,
+        "ppv": 0.142,
+        "ppv2opt": 0.628
       },
       "ameliorationVsPpv": 12.44
     },
     {
       "n": 150,
       "tempsMs": {
-        "complet": 6.409,
-        "ppv": 0.235,
-        "ppv2opt": 1.612
+        "complet": 6.389,
+        "ppv": 0.236,
+        "ppv2opt": 1.624
       },
       "ameliorationVsPpv": 14.98
     },
     {
       "n": 200,
       "tempsMs": {
-        "complet": 17.09,
-        "ppv": 0.447,
-        "ppv2opt": 3.51
+        "complet": 17.15,
+        "ppv": 0.467,
+        "ppv2opt": 3.028
       },
       "ameliorationVsPpv": 17.08
     }
@@ -230,6 +230,128 @@
       "gainMoyen": 77.4,
       "gainMin": 73.2,
       "gainMax": 80.3
+    }
+  ],
+  "vrp": [
+    {
+      "scenario": "20 adresses en ville",
+      "k": 2,
+      "critere": "arrets",
+      "totalKm": 67.6,
+      "chargeMaxKm": 57.7,
+      "ecartChargesKm": 7.9,
+      "gainVsNaif": 59.7,
+      "tempsMs": 10.4
+    },
+    {
+      "scenario": "20 adresses en ville",
+      "k": 2,
+      "critere": "equilibre",
+      "totalKm": 66.4,
+      "chargeMaxKm": 57.8,
+      "ecartChargesKm": 9.2,
+      "gainVsNaif": 60.4,
+      "tempsMs": 19
+    },
+    {
+      "scenario": "20 adresses en ville",
+      "k": 3,
+      "critere": "arrets",
+      "totalKm": 79.5,
+      "chargeMaxKm": 45.5,
+      "ecartChargesKm": 12.4,
+      "gainVsNaif": 54.5,
+      "tempsMs": 7.6
+    },
+    {
+      "scenario": "20 adresses en ville",
+      "k": 3,
+      "critere": "equilibre",
+      "totalKm": 78.1,
+      "chargeMaxKm": 45.9,
+      "ecartChargesKm": 13.9,
+      "gainVsNaif": 55.4,
+      "tempsMs": 18
+    },
+    {
+      "scenario": "20 adresses en ville",
+      "k": 4,
+      "critere": "arrets",
+      "totalKm": 93.9,
+      "chargeMaxKm": 40.3,
+      "ecartChargesKm": 13.8,
+      "gainVsNaif": 46.9,
+      "tempsMs": 5.3
+    },
+    {
+      "scenario": "20 adresses en ville",
+      "k": 4,
+      "critere": "equilibre",
+      "totalKm": 90,
+      "chargeMaxKm": 41,
+      "ecartChargesKm": 17.3,
+      "gainVsNaif": 49.1,
+      "tempsMs": 18.3
+    },
+    {
+      "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
+      "k": 2,
+      "critere": "arrets",
+      "totalKm": 104.5,
+      "chargeMaxKm": 91.4,
+      "ecartChargesKm": 36.3,
+      "gainVsNaif": 51.9,
+      "tempsMs": 6
+    },
+    {
+      "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
+      "k": 2,
+      "critere": "equilibre",
+      "totalKm": 103.6,
+      "chargeMaxKm": 82.1,
+      "ecartChargesKm": 18.6,
+      "gainVsNaif": 52.4,
+      "tempsMs": 19.6
+    },
+    {
+      "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
+      "k": 3,
+      "critere": "arrets",
+      "totalKm": 118.2,
+      "chargeMaxKm": 79.3,
+      "ecartChargesKm": 42.1,
+      "gainVsNaif": 46.7,
+      "tempsMs": 6.1
+    },
+    {
+      "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
+      "k": 3,
+      "critere": "equilibre",
+      "totalKm": 117.7,
+      "chargeMaxKm": 70,
+      "ecartChargesKm": 29.5,
+      "gainVsNaif": 46.9,
+      "tempsMs": 19.4
+    },
+    {
+      "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
+      "k": 4,
+      "critere": "arrets",
+      "totalKm": 127.4,
+      "chargeMaxKm": 73.3,
+      "ecartChargesKm": 51.5,
+      "gainVsNaif": 44.4,
+      "tempsMs": 8.7
+    },
+    {
+      "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
+      "k": 4,
+      "critere": "equilibre",
+      "totalKm": 126.2,
+      "chargeMaxKm": 63.6,
+      "ecartChargesKm": 36.3,
+      "gainVsNaif": 44.9,
+      "tempsMs": 24.5
     }
   ]
 }

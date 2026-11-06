@@ -15,6 +15,7 @@ export interface EntreeOptimisation {
   prefererOsrm?: boolean;
   /** Nombre de livreurs (1 à 6 ; 1 = tournée unique). */
   nombreLivreurs?: number;
+  critereLivreurs?: 'equilibre' | 'arrets';
 }
 
 export interface StatsDashboard {

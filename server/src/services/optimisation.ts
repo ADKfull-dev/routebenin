@@ -14,7 +14,7 @@
  */
 import { solveTour, computeTourDistance } from '../algorithms/tsp.js';
 import { matriceHaversine, type Coordonnee } from '../algorithms/distance.js';
-import { repartirTournees, repartitionNaive } from '../algorithms/vrp.js';
+import { repartirTournees, repartitionNaive, type CritereVrp } from '../algorithms/vrp.js';
 import { matriceDistancesOSRM, traceItineraire } from './osrm.js';
 
 export interface Arret {
@@ -33,6 +33,8 @@ export interface EntreeOptimisation {
   prefererOsrm: boolean;
   /** Nombre de livreurs (1 = tournée unique). */
   nombreLivreurs?: number;
+  /** Critère de répartition multi-livreurs (défaut : charges équilibrées). */
+  critereLivreurs?: CritereVrp;
 }
 
 export interface ResultatOptimisation {
@@ -49,6 +51,8 @@ export interface ResultatOptimisation {
   geometrieInitiale: [number, number][] | null;
   /** Mode multi-livreurs : une sous-tournée par livreur (null sinon). */
   livreurs?: ResultatOptimisation[] | null;
+  /** Critère utilisé pour la répartition multi-livreurs. */
+  critereLivreurs?: CritereVrp | null;
 }
 
 export class EntreeInvalideError extends Error {
@@ -110,7 +114,7 @@ export async function optimiserTournee(
         'En mode multi-livreurs, chaque livreur revient au point de départ : retirez l’arrivée.',
       );
     }
-    return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs);
+    return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs, entree.critereLivreurs ?? 'equilibre');
   }
 
   const n = noeuds.length;
@@ -234,9 +238,10 @@ async function optimiserMultiLivreurs(
   durations: number[][] | null,
   source: SourceDistance,
   k: number,
+  critere: CritereVrp,
 ): Promise<ResultatOptimisation> {
   const coords = noeuds.map((a) => ({ lat: a.lat, lng: a.lng }));
-  const vrp = repartirTournees(distances, coords, 0, k);
+  const vrp = repartirTournees(distances, coords, 0, k, critere);
   const distanceInitiale = repartitionNaive(distances, 0, k);
 
   const geometries = await Promise.all(
@@ -282,5 +287,6 @@ async function optimiserMultiLivreurs(
     geometrie: null,
     geometrieInitiale: null,
     livreurs,
+    critereLivreurs: critere,
   };
 }

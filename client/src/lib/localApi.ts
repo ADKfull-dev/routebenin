@@ -17,7 +17,7 @@ import {
   type StatsDashboard,
 } from './apiTypes';
 import { solveTour, computeTourDistance, matriceHaversine, type Coordonnee } from './tsp';
-import { repartirTournees, repartitionNaive } from './vrp';
+import { repartirTournees, repartitionNaive, type CritereVrp } from './vrp';
 
 const OSRM = 'https://router.project-osrm.org';
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
@@ -86,8 +86,9 @@ async function optimiserMultiLivreurs(
   durations: number[][] | null,
   source: 'osrm' | 'haversine',
   k: number,
+  critere: CritereVrp,
 ): Promise<ResultatOptimisation> {
-  const vrp = repartirTournees(distances, noeuds.map((a) => ({ lat: a.lat, lng: a.lng })), 0, k);
+  const vrp = repartirTournees(distances, noeuds.map((a) => ({ lat: a.lat, lng: a.lng })), 0, k, critere);
   const distanceInitiale = repartitionNaive(distances, 0, k);
   const geometries = await Promise.all(
     vrp.tournees.map((t) =>
@@ -131,6 +132,7 @@ async function optimiserMultiLivreurs(
     geometrie: null,
     geometrieInitiale: null,
     livreurs,
+    critereLivreurs: critere,
   };
 }
 
@@ -182,7 +184,7 @@ export const localApi: ApiClient = {
       if (arriveeDistincte) {
         throw new ApiError('En mode multi-livreurs, chaque livreur revient au point de départ : retirez l’arrivée.');
       }
-      return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs);
+      return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs, entree.critereLivreurs ?? 'equilibre');
     }
 
     const n = noeuds.length;

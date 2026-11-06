@@ -8,6 +8,7 @@ import type { ResultatOptimisation } from '../types';
 import { couleurLivreur, encreSur } from '../lib/couleurs';
 import { formatDistance, formatDuree } from '../lib/format';
 import { libelleCourt } from '../lib/feuilleRoute';
+import { charge } from '../lib/vrp';
 import { ExportActions } from './ExportActions';
 
 interface Props {
@@ -19,11 +20,18 @@ interface Props {
 
 export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: Props) {
   const livreurs = resultat.livreurs ?? [];
+  const charges = livreurs.map((l) => charge(l.distanceOptimisee, l.nombreDestinations));
+  const chargeMax = Math.max(...charges, 1);
   return (
     <section className="carte p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-2 text-sm font-semibold text-nuit">
           <Truck className="h-4 w-4 text-electrique" /> {livreurs.length} livreurs
+          {resultat.critereLivreurs && (
+            <span className="font-normal text-nuit/45">
+              · {resultat.critereLivreurs === 'arrets' ? 'même nombre d’arrêts' : 'charges équilibrées'}
+            </span>
+          )}
         </p>
         {livreurActif !== null && (
           <button type="button" onClick={() => onSelectionner(null)} className="text-xs text-electrique hover:underline">
@@ -49,6 +57,16 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
                   <span className="chiffre block text-xs text-nuit/55">
                     {l.nombreDestinations} arrêt{l.nombreDestinations > 1 ? 's' : ''} · {formatDistance(l.distanceOptimisee)}
                     {l.dureeSecondes !== null ? ` · ${formatDuree(l.dureeSecondes)}` : ''}
+                  </span>
+                  <span
+                    className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-brume"
+                    title="Charge de travail estimée : route + 5 min par livraison"
+                    aria-label={`Charge relative : ${Math.round((charges[i] / chargeMax) * 100)} %`}
+                  >
+                    <span
+                      className="block h-full rounded-full"
+                      style={{ width: `${(charges[i] / chargeMax) * 100}%`, background: couleur }}
+                    />
                   </span>
                 </span>
                 <ChevronDown className={`h-4 w-4 text-nuit/40 transition ${actif ? 'rotate-180' : ''}`} />

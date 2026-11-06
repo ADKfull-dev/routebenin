@@ -13,7 +13,7 @@ import { LivreursPanel } from '../components/LivreursPanel';
 import { Spinner } from '../components/ui';
 import { useToast } from '../components/Toast';
 import { api, ApiError } from '../lib/api';
-import type { Arret, ResultatOptimisation } from '../types';
+import type { Arret, CritereLivreurs, ResultatOptimisation } from '../types';
 import { DEPART_DEMO, DESTINATIONS_DEMO } from '../lib/demoCotonou';
 import { traceInitial as calculerTraceInitial, traceOptimise, carteMultiLivreurs } from '../lib/traces';
 import { NOMBRE_MAX_LIVREURS } from '../lib/couleurs';
@@ -29,6 +29,7 @@ export function Optimize() {
   const [arriveeSaisie, setArrivee] = useState<Arret | null>(null);
   const [nbLivreurs, setNbLivreurs] = useState(1);
   const [livreurActif, setLivreurActif] = useState<number | null>(null);
+  const [critere, setCritere] = useState<CritereLivreurs>('equilibre');
   // En multi-livreurs, chacun revient au départ : l'arrivée est ignorée.
   const arrivee = nbLivreurs > 1 ? null : arriveeSaisie;
 
@@ -178,6 +179,7 @@ export function Optimize() {
         arrivee,
         prefererOsrm,
         nombreLivreurs: Math.min(nbLivreurs, destinations.length),
+        critereLivreurs: critere,
       });
       setResultat(r);
       if (r.source === 'haversine') {
@@ -313,6 +315,35 @@ export function Optimize() {
                   </button>
                 </div>
               </div>
+              {nbLivreurs > 1 && (
+                <div className="mt-3">
+                  <div className="flex rounded-lg bg-brume p-0.5 text-xs" role="group" aria-label="Critère de répartition">
+                    {(
+                      [
+                        ['equilibre', 'Charges équilibrées'],
+                        ['arrets', 'Même nombre d’arrêts'],
+                      ] as const
+                    ).map(([c, libelle]) => (
+                      <button
+                        key={c}
+                        type="button"
+                        aria-pressed={critere === c}
+                        onClick={() => { setCritere(c); reinitialiserResultat(); }}
+                        className={`flex-1 rounded-md px-2 py-1.5 font-medium transition ${
+                          critere === c ? 'bg-white text-nuit shadow-carte' : 'text-nuit/55 hover:text-nuit'
+                        }`}
+                      >
+                        {libelle}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs text-nuit/45">
+                    {critere === 'equilibre'
+                      ? 'Équilibre le temps de travail (route + 5 min par livraison) : un livreur qui va loin a moins d’arrêts.'
+                      : 'Chaque livreur reçoit le même nombre d’adresses, au plus court.'}
+                  </p>
+                </div>
+              )}
               {nbLivreurs > 1 && destinations.length > 0 && destinations.length < nbLivreurs && (
                 <p className="mt-2 text-xs text-attention">
                   Seulement {destinations.length} destination{destinations.length > 1 ? 's' : ''} : {destinations.length} livreur{destinations.length > 1 ? 's' : ''} seront utilisés.

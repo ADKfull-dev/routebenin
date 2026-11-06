@@ -54,7 +54,11 @@ export interface ResultatOptimisation {
   geometrieInitiale?: [number, number][] | null;
   /** Mode multi-livreurs : une sous-tournée par livreur (dépôt en tête, boucle fermée). */
   livreurs?: ResultatOptimisation[] | null;
+  /** Critère de répartition : charges équilibrées ou même nombre d'arrêts. */
+  critereLivreurs?: CritereLivreurs | null;
 }
+
+export type CritereLivreurs = 'equilibre' | 'arrets';
 
 /** Une tournée sauvegardée (historique). */
 export interface TourneeSauvegardee {

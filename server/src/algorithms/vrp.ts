@@ -2,20 +2,30 @@
  * vrp.ts — Répartition d'une tournée entre plusieurs livreurs (VRP).
  *
  * Problème : K livreurs partent du même dépôt et y reviennent. Il faut
- * répartir les destinations entre eux et ordonner chaque tournée, en
- * minimisant la distance totale tout en gardant des charges équilibrées
- * (chaque livreur a au plus ⌈n / K⌉ arrêts).
+ * répartir les destinations entre eux et ordonner chaque tournée.
+ *
+ * Deux critères, au choix :
+ *  - « charges équilibrées » (défaut) : la charge d'un livreur est
+ *        wᵢ = distance de sa tournée + C × nombre d'arrêts
+ *    (C = temps passé à chaque livraison, converti en distance : 5 min à
+ *    ~25 km/h en ville ≈ 2 km). On minimise Σ wᵢ². Comme
+ *        Σ wᵢ² = K · (moyenne² + variance),
+ *    ce critère réduit à la fois la charge totale ET l'écart entre livreurs,
+ *    sans jamais récompenser un détour (allonger une tournée augmente Σ wᵢ²).
+ *    Chaque livreur garde au moins un arrêt ; le nombre d'arrêts peut varier.
+ *  - « même nombre d'arrêts » : minimiser la distance totale avec au plus
+ *    ⌈n / K⌉ arrêts par livreur.
  *
  * Méthode « grouper d'abord, ordonner ensuite » (cluster-first, route-second),
  * entièrement codée ici :
  *   1. Balayage angulaire (sweep, Gillett & Miller 1974) : on trie les
  *      destinations par angle autour du dépôt puis on découpe ce cercle en K
- *      secteurs contigus de tailles équilibrées. On essaie TOUS les points de
- *      départ du balayage et on garde le meilleur découpage.
+ *      secteurs contigus. On essaie TOUS les points de départ du balayage et
+ *      on garde le meilleur découpage selon le critère choisi.
  *   2. Chaque secteur est ordonné par le moteur TSP (PPV + 2-opt + Or-opt).
  *   3. Amélioration inter-tournées : on déplace un point d'une tournée à une
- *      autre (relocate) ou on échange deux points (swap) tant que la distance
- *      totale diminue et que la contrainte de charge est respectée.
+ *      autre (relocate) ou on échange deux points (swap) tant que le critère
+ *      diminue et que les contraintes sont respectées.
  *
  * Module pur : matrice de distances + coordonnées en entrée, aucun réseau.
  */
@@ -26,6 +36,8 @@ export interface PointPlan {
   lng: number;
 }
 
+export type CritereVrp = 'equilibre' | 'arrets';
+
 export interface ResultatVrp {
   /** Une tournée par livreur : indices de la matrice, dépôt en tête (boucle fermée). */
   tournees: number[][];
@@ -33,12 +45,26 @@ export interface ResultatVrp {
   distances: number[];
   /** Somme des distances. */
   total: number;
+  /** Plus longue tournée. */
+  max: number;
 }
 
 const EPS = 1e-9;
+/** Temps de service d'un arrêt, exprimé en mètres équivalents (5 min ≈ 2 km en ville). */
+export const COUT_ARRET_M = 2000;
 
 /** Distance d'une tournée fermée (dépôt + arrêts). */
 const longueur = (D: number[][], t: number[]) => computeTourDistance(D, t);
+
+/** Charge de travail d'un livreur : conduite + temps de service aux arrêts. */
+export const charge = (distance: number, arrets: number) => distance + COUT_ARRET_M * arrets;
+
+/** Valeur du critère à minimiser (longueurs et nombres d'arrêts par tournée). */
+export function coutRepartition(distances: number[], arrets: number[], critere: CritereVrp): number {
+  if (critere === 'arrets') return distances.reduce((s, d) => s + d, 0);
+  // Σ wᵢ² (en km² pour garder des nombres raisonnables)
+  return distances.reduce((s, d, i) => s + (charge(d, arrets[i]) / 1000) ** 2, 0);
+}
 
 /**
  * Ordonne un groupe d'arrêts en tournée optimale partant du dépôt.
@@ -66,7 +92,7 @@ function angles(points: PointPlan[], depot: number): number[] {
 }
 
 /** Étape 1 + 2 : balayage angulaire, meilleur point de départ, TSP par secteur. */
-function balayage(D: number[][], points: PointPlan[], depot: number, k: number): number[][] {
+function balayage(D: number[][], points: PointPlan[], depot: number, k: number, critere: CritereVrp): number[][] {
   const a = angles(points, depot);
   const destinations = points.map((_, i) => i).filter((i) => i !== depot);
   destinations.sort((i, j) => a[i] - a[j]);
@@ -74,22 +100,18 @@ function balayage(D: number[][], points: PointPlan[], depot: number, k: number):
   const tailles = taillesEquilibrees(n, k);
 
   let meilleur: number[][] = [];
-  let meilleurTotal = Infinity;
+  let meilleurCout = Infinity;
   for (let debut = 0; debut < n; debut++) {
     const cercle = [...destinations.slice(debut), ...destinations.slice(0, debut)];
     const tournees: number[][] = [];
     let pos = 0;
-    let total = 0;
     for (const t of tailles) {
-      const groupe = cercle.slice(pos, pos + t);
+      tournees.push(ordonnerGroupe(D, depot, cercle.slice(pos, pos + t)));
       pos += t;
-      const tour = ordonnerGroupe(D, depot, groupe);
-      total += longueur(D, tour);
-      tournees.push(tour);
-      if (total >= meilleurTotal) break; // élagage : déjà pire
     }
-    if (tournees.length === k && total < meilleurTotal - EPS) {
-      meilleurTotal = total;
+    const cout = coutRepartition(tournees.map((t) => longueur(D, t)), tournees.map((t) => t.length - 1), critere);
+    if (cout < meilleurCout - EPS) {
+      meilleurCout = cout;
       meilleur = tournees;
     }
   }
@@ -97,18 +119,42 @@ function balayage(D: number[][], points: PointPlan[], depot: number, k: number):
 }
 
 /** Étape 3 : relocate + swap entre tournées, jusqu'à stabilité. */
-function ameliorerEntreTournees(D: number[][], depot: number, tournees: number[][], capacite: number): number[][] {
+function ameliorerEntreTournees(
+  D: number[][],
+  depot: number,
+  tournees: number[][],
+  critere: CritereVrp,
+  capacite: number,
+): number[][] {
   const t = tournees.map((x) => x.slice());
   const dist = t.map((x) => longueur(D, x));
   const arrets = (i: number) => t[i].slice(1);
+  const nbArrets = () => t.map((x) => x.length - 1);
+  /** Critère si les tournées a et b devenaient nouvA / nouvB. */
+  const coutAvec = (a: number, nouvA: number[], dA: number, b: number, nouvB: number[], dB: number) =>
+    coutRepartition(
+      dist.map((d, i) => (i === a ? dA : i === b ? dB : d)),
+      t.map((x, i) => (i === a ? nouvA.length : i === b ? nouvB.length : x.length) - 1),
+      critere,
+    );
+
+  let coutCourant = coutRepartition(dist, nbArrets(), critere);
+  const appliquer = (a: number, nouvA: number[], dA: number, b: number, nouvB: number[], dB: number) => {
+    t[a] = nouvA;
+    t[b] = nouvB;
+    dist[a] = dA;
+    dist[b] = dB;
+    coutCourant = coutRepartition(dist, nbArrets(), critere);
+  };
 
   let ameliore = true;
   let garde = 0;
-  while (ameliore && garde++ < 200) {
+  while (ameliore && garde++ < 500) {
     ameliore = false;
 
     // Relocate : déplacer un arrêt de la tournée a vers la tournée b.
     for (let a = 0; a < t.length && !ameliore; a++) {
+      if (t[a].length - 1 <= 1) continue; // chaque livreur garde au moins un arrêt
       for (const p of arrets(a)) {
         if (ameliore) break;
         for (let b = 0; b < t.length; b++) {
@@ -117,11 +163,8 @@ function ameliorerEntreTournees(D: number[][], depot: number, tournees: number[]
           const nouvB = ordonnerGroupe(D, depot, [...arrets(b), p]);
           const dA = longueur(D, nouvA);
           const dB = longueur(D, nouvB);
-          if (dA + dB < dist[a] + dist[b] - EPS) {
-            t[a] = nouvA;
-            t[b] = nouvB;
-            dist[a] = dA;
-            dist[b] = dB;
+          if (coutAvec(a, nouvA, dA, b, nouvB, dB) < coutCourant - EPS) {
+            appliquer(a, nouvA, dA, b, nouvB, dB);
             ameliore = true;
             break;
           }
@@ -140,11 +183,8 @@ function ameliorerEntreTournees(D: number[][], depot: number, tournees: number[]
             const nouvB = ordonnerGroupe(D, depot, [...arrets(b).filter((x) => x !== q), p]);
             const dA = longueur(D, nouvA);
             const dB = longueur(D, nouvB);
-            if (dA + dB < dist[a] + dist[b] - EPS) {
-              t[a] = nouvA;
-              t[b] = nouvB;
-              dist[a] = dA;
-              dist[b] = dB;
+            if (coutAvec(a, nouvA, dA, b, nouvB, dB) < coutCourant - EPS) {
+              appliquer(a, nouvA, dA, b, nouvB, dB);
               ameliore = true;
               break;
             }
@@ -159,25 +199,47 @@ function ameliorerEntreTournees(D: number[][], depot: number, tournees: number[]
 /**
  * Répartit les points entre `k` livreurs partant tous de `depot`.
  *
- * @param D       matrice des distances (carrée)
- * @param points  coordonnées de chaque nœud (même indexation que D)
- * @param depot   indice du dépôt (point de départ commun)
- * @param k       nombre de livreurs (borné au nombre de destinations)
+ * @param D        matrice des distances (carrée)
+ * @param points   coordonnées de chaque nœud (même indexation que D)
+ * @param depot    indice du dépôt (point de départ commun)
+ * @param k        nombre de livreurs (borné au nombre de destinations)
+ * @param critere  « equilibre » (défaut) ou « arrets » (voir en-tête)
  */
-export function repartirTournees(D: number[][], points: PointPlan[], depot: number, k: number): ResultatVrp {
+export function repartirTournees(
+  D: number[][],
+  points: PointPlan[],
+  depot: number,
+  k: number,
+  critere: CritereVrp = 'equilibre',
+): ResultatVrp {
   const n = D.length - 1; // destinations
-  if (n < 1) return { tournees: [[depot]], distances: [0], total: 0 };
+  if (n < 1) return { tournees: [[depot]], distances: [0], total: 0, max: 0 };
   const livreurs = Math.max(1, Math.min(Math.floor(k), n));
 
   let tournees: number[][];
   if (livreurs === 1) {
     tournees = [solveTour(D, depot).order];
   } else {
-    const capacite = Math.ceil(n / livreurs);
-    tournees = ameliorerEntreTournees(D, depot, balayage(D, points, depot, livreurs), capacite);
+    // Solution « même nombre d'arrêts » : balayage + amélioration sous plafond ⌈n/K⌉.
+    const parArrets = ameliorerEntreTournees(
+      D, depot, balayage(D, points, depot, livreurs, 'arrets'), 'arrets', Math.ceil(n / livreurs),
+    );
+    if (critere === 'arrets') {
+      tournees = parArrets;
+    } else {
+      // « Charges équilibrées » : recherche locale depuis deux points de départ
+      // (balayage dédié, et la solution à nombre d'arrêts égal), on garde la meilleure.
+      const cout = (t: number[][]) =>
+        coutRepartition(t.map((x) => longueur(D, x)), t.map((x) => x.length - 1), 'equilibre');
+      const candidats = [
+        ameliorerEntreTournees(D, depot, balayage(D, points, depot, livreurs, 'equilibre'), 'equilibre', n),
+        ameliorerEntreTournees(D, depot, parArrets, 'equilibre', n),
+      ];
+      tournees = cout(candidats[0]) <= cout(candidats[1]) ? candidats[0] : candidats[1];
+    }
   }
   const distances = tournees.map((x) => longueur(D, x));
-  return { tournees, distances, total: distances.reduce((s, d) => s + d, 0) };
+  return { tournees, distances, total: distances.reduce((s, d) => s + d, 0), max: Math.max(...distances) };
 }
 
 /**

@@ -1,6 +1,6 @@
 /** Tests de la répartition multi-livreurs (VRP). */
 import { describe, it, expect } from 'vitest';
-import { repartirTournees, repartitionNaive, taillesEquilibrees } from './vrp';
+import { repartirTournees, repartitionNaive, taillesEquilibrees, charge } from './vrp';
 import { matriceHaversine, type Coordonnee } from './distance';
 
 function points(n: number, graine = 7): Coordonnee[] {
@@ -29,10 +29,10 @@ describe('repartirTournees', () => {
     }
   });
 
-  it('respecte la charge maximale ⌈n/k⌉', () => {
+  it('critère « arrets » : au plus ⌈n/k⌉ arrêts par livreur', () => {
     const P = points(23, 3);
     const D = matriceHaversine(P);
-    const r = repartirTournees(D, P, 0, 4);
+    const r = repartirTournees(D, P, 0, 4, 'arrets');
     for (const t of r.tournees) expect(t.length - 1).toBeLessThanOrEqual(Math.ceil(22 / 4));
   });
 
@@ -42,13 +42,40 @@ describe('repartirTournees', () => {
     expect(r.tournees).toHaveLength(3);
   });
 
-  it('fait mieux que la répartition naïve (ordre de saisie)', () => {
+  it('fait mieux que la répartition naïve (ordre de saisie), quel que soit le critère', () => {
     for (const graine of [1, 2, 3, 4, 5]) {
       const P = points(25, graine);
       const D = matriceHaversine(P);
-      const r = repartirTournees(D, P, 0, 3);
-      expect(r.total).toBeLessThan(repartitionNaive(D, 0, 3));
+      for (const c of ['equilibre', 'arrets'] as const) {
+        expect(repartirTournees(D, P, 0, 3, c).total).toBeLessThan(repartitionNaive(D, 0, 3));
+      }
     }
+  });
+
+  it('critère « equilibre » : chaque livreur garde au moins un arrêt', () => {
+    for (const graine of [1, 2, 3]) {
+      const P = points(12, graine);
+      const r = repartirTournees(matriceHaversine(P), P, 0, 5, 'equilibre');
+      for (const t of r.tournees) expect(t.length).toBeGreaterThan(1);
+    }
+  });
+
+  it('critère « equilibre » : réduit la charge du livreur le plus chargé quand un point est isolé', () => {
+    // Un point très éloigné (type Porto-Novo depuis Cotonou) : avec « même
+    // nombre d'arrêts », son livreur cumule le trajet lointain et des arrêts.
+    let mieux = 0;
+    for (const graine of [1, 2, 3, 4, 5, 6]) {
+      const P = [...points(16, graine), { lat: 6.5, lng: 2.63 }];
+      const D = matriceHaversine(P);
+      const chargeMax = (c: 'equilibre' | 'arrets') => {
+        const r = repartirTournees(D, P, 0, 3, c);
+        return Math.max(...r.tournees.map((t, i) => charge(r.distances[i], t.length - 1)));
+      };
+      const [eq, ar] = [chargeMax('equilibre'), chargeMax('arrets')];
+      expect(eq).toBeLessThanOrEqual(ar + 1e-6);
+      if (eq < ar - 1) mieux++;
+    }
+    expect(mieux).toBeGreaterThan(0);
   });
 
   it('total = somme des distances par tournée', () => {
