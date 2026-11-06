@@ -8,6 +8,7 @@ import { api, ApiError, type ResumeTournee } from '../lib/api';
 import { Skeleton, EmptyState, Spinner } from '../components/ui';
 import { MapView, type MarqueurCarte } from '../components/MapView';
 import { ResultCard } from '../components/ResultCard';
+import { ExportActions } from '../components/ExportActions';
 import { useToast } from '../components/Toast';
 import { formatDistance, formatPourcent, formatDate } from '../lib/format';
 import type { TourneeSauvegardee } from '../types';
@@ -171,8 +172,9 @@ function DetailModal({ tournee, onFermer }: { tournee: TourneeSauvegardee; onFer
           <div className="h-72 overflow-hidden rounded-xl border border-slate-200 md:h-auto md:min-h-[360px] dark:border-white/10">
             <MapView marqueurs={marqueurs} trace={trace} traceInitial={traceNaif} />
           </div>
-          <div>
+          <div className="flex flex-col gap-4">
             <ResultCard resultat={tournee.resultat} />
+            <ExportActions resultat={tournee.resultat} boucle={!arriveeDistincte} nom={tournee.nom} />
           </div>
         </div>
       </div>

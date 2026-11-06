@@ -8,6 +8,7 @@ import { AddressSearch } from '../components/AddressSearch';
 import { StopList } from '../components/StopList';
 import { MapView, type MarqueurCarte } from '../components/MapView';
 import { ResultCard } from '../components/ResultCard';
+import { ExportActions } from '../components/ExportActions';
 import { Spinner } from '../components/ui';
 import { useToast } from '../components/Toast';
 import { api, ApiError } from '../lib/api';
@@ -301,6 +302,7 @@ export function Optimize() {
         ) : (
           <>
             <ResultCard resultat={resultat} />
+            <ExportActions resultat={resultat} boucle={!arriveeDistincte} nom={nomTournee} />
             {/* Enregistrement */}
             <section className="carte p-4">
               <label htmlFor="nom-tournee" className="etiquette mb-2">
