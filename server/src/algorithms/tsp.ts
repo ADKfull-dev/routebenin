@@ -66,7 +66,7 @@ export function computeTourDistance(matrix: number[][], order: number[]): number
  * Étape 1 — Construction par Plus Proche Voisin.
  * Depuis le départ, on va toujours vers le point non visité le plus proche.
  */
-function plusProcheVoisin(matrix: number[][], start: number): number[] {
+export function plusProcheVoisin(matrix: number[][], start: number): number[] {
   const n = matrix.length;
   const visite = new Array<boolean>(n).fill(false);
   const order: number[] = [start];
@@ -101,7 +101,7 @@ function plusProcheVoisin(matrix: number[][], start: number): number[] {
  * les points intermédiaires, ce qui garantit que la tournée part toujours du
  * départ demandé.
  */
-function deuxOpt(matrix: number[][], ordreInitial: number[]): number[] {
+export function deuxOpt(matrix: number[][], ordreInitial: number[]): number[] {
   const n = ordreInitial.length;
   if (n < 4) return ordreInitial.slice(); // pas d'amélioration possible en dessous
 
@@ -150,7 +150,7 @@ function inverserSegment(order: number[], i: number, j: number): void {
  * améliorations qu'un simple décroisement ne trouve pas sont capturées ici.
  * Renvoie true si une amélioration a été appliquée.
  */
-function orOpt(matrix: number[][], order: number[]): boolean {
+export function orOpt(matrix: number[][], order: number[]): boolean {
   const n = order.length;
   let ameliore = false;
   for (let i = 1; i < n; i++) {

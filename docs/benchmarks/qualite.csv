@@ -1,0 +1,7 @@
+n;instances;ecart_moyen_complet;ecart_max_complet;optimum_atteint_complet;ecart_moyen_ppv;ecart_max_ppv;optimum_atteint_ppv;ecart_moyen_ppv2opt;ecart_max_ppv2opt;optimum_atteint_ppv2opt
+5;30;0;0;100;3.37;24.6;57;0;0;100
+6;30;0;0;100;6.35;21.6;27;0.04;1.31;97
+7;30;0.19;2.96;93;7.82;35.75;30;0.19;2.96;93
+8;30;0.21;2.75;90;6.58;16.7;30;0.82;9.99;73
+9;30;0;0;100;10.82;32.5;10;0.38;5.5;87
+10;10;0.01;0.14;90;6.98;12.77;10;0.72;6.17;70

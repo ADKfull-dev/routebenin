@@ -1,0 +1,235 @@
+{
+  "meta": {
+    "genereLe": "2026-11-06T11:18:09.592Z",
+    "node": "v22.11.0",
+    "distances": "Haversine (vol d’oiseau), points aléatoires à graine fixe dans l’emprise Cotonou / Abomey-Calavi"
+  },
+  "qualite": [
+    {
+      "n": 5,
+      "instances": 30,
+      "ecartMoyen": {
+        "complet": 0,
+        "ppv": 3.37,
+        "ppv2opt": 0
+      },
+      "ecartMax": {
+        "complet": 0,
+        "ppv": 24.6,
+        "ppv2opt": 0
+      },
+      "optimumAtteint": {
+        "complet": 100,
+        "ppv": 57,
+        "ppv2opt": 100
+      }
+    },
+    {
+      "n": 6,
+      "instances": 30,
+      "ecartMoyen": {
+        "complet": 0,
+        "ppv": 6.35,
+        "ppv2opt": 0.04
+      },
+      "ecartMax": {
+        "complet": 0,
+        "ppv": 21.6,
+        "ppv2opt": 1.31
+      },
+      "optimumAtteint": {
+        "complet": 100,
+        "ppv": 27,
+        "ppv2opt": 97
+      }
+    },
+    {
+      "n": 7,
+      "instances": 30,
+      "ecartMoyen": {
+        "complet": 0.19,
+        "ppv": 7.82,
+        "ppv2opt": 0.19
+      },
+      "ecartMax": {
+        "complet": 2.96,
+        "ppv": 35.75,
+        "ppv2opt": 2.96
+      },
+      "optimumAtteint": {
+        "complet": 93,
+        "ppv": 30,
+        "ppv2opt": 93
+      }
+    },
+    {
+      "n": 8,
+      "instances": 30,
+      "ecartMoyen": {
+        "complet": 0.21,
+        "ppv": 6.58,
+        "ppv2opt": 0.82
+      },
+      "ecartMax": {
+        "complet": 2.75,
+        "ppv": 16.7,
+        "ppv2opt": 9.99
+      },
+      "optimumAtteint": {
+        "complet": 90,
+        "ppv": 30,
+        "ppv2opt": 73
+      }
+    },
+    {
+      "n": 9,
+      "instances": 30,
+      "ecartMoyen": {
+        "complet": 0,
+        "ppv": 10.82,
+        "ppv2opt": 0.38
+      },
+      "ecartMax": {
+        "complet": 0,
+        "ppv": 32.5,
+        "ppv2opt": 5.5
+      },
+      "optimumAtteint": {
+        "complet": 100,
+        "ppv": 10,
+        "ppv2opt": 87
+      }
+    },
+    {
+      "n": 10,
+      "instances": 10,
+      "ecartMoyen": {
+        "complet": 0.01,
+        "ppv": 6.98,
+        "ppv2opt": 0.72
+      },
+      "ecartMax": {
+        "complet": 0.14,
+        "ppv": 12.77,
+        "ppv2opt": 6.17
+      },
+      "optimumAtteint": {
+        "complet": 90,
+        "ppv": 10,
+        "ppv2opt": 70
+      }
+    }
+  ],
+  "temps": [
+    {
+      "n": 10,
+      "tempsMs": {
+        "complet": 0.008,
+        "ppv": 0.002,
+        "ppv2opt": 0.005
+      },
+      "ameliorationVsPpv": 8.03
+    },
+    {
+      "n": 20,
+      "tempsMs": {
+        "complet": 0.041,
+        "ppv": 0.006,
+        "ppv2opt": 0.017
+      },
+      "ameliorationVsPpv": 17.42
+    },
+    {
+      "n": 30,
+      "tempsMs": {
+        "complet": 0.082,
+        "ppv": 0.012,
+        "ppv2opt": 0.058
+      },
+      "ameliorationVsPpv": 10.9
+    },
+    {
+      "n": 50,
+      "tempsMs": {
+        "complet": 0.256,
+        "ppv": 0.028,
+        "ppv2opt": 0.123
+      },
+      "ameliorationVsPpv": 13.5
+    },
+    {
+      "n": 75,
+      "tempsMs": {
+        "complet": 0.993,
+        "ppv": 0.061,
+        "ppv2opt": 0.289
+      },
+      "ameliorationVsPpv": 16.99
+    },
+    {
+      "n": 100,
+      "tempsMs": {
+        "complet": 1.667,
+        "ppv": 0.107,
+        "ppv2opt": 0.588
+      },
+      "ameliorationVsPpv": 12.44
+    },
+    {
+      "n": 150,
+      "tempsMs": {
+        "complet": 5.473,
+        "ppv": 0.241,
+        "ppv2opt": 1.368
+      },
+      "ameliorationVsPpv": 14.98
+    },
+    {
+      "n": 200,
+      "tempsMs": {
+        "complet": 14.094,
+        "ppv": 0.433,
+        "ppv2opt": 2.933
+      },
+      "ameliorationVsPpv": 17.08
+    }
+  ],
+  "gain": [
+    {
+      "n": 5,
+      "gainMoyen": 15.8,
+      "gainMin": 0,
+      "gainMax": 37.7
+    },
+    {
+      "n": 10,
+      "gainMoyen": 46,
+      "gainMin": 32.7,
+      "gainMax": 61.2
+    },
+    {
+      "n": 15,
+      "gainMoyen": 55.4,
+      "gainMin": 40.9,
+      "gainMax": 67.3
+    },
+    {
+      "n": 20,
+      "gainMoyen": 61.8,
+      "gainMin": 50.1,
+      "gainMax": 71.8
+    },
+    {
+      "n": 30,
+      "gainMoyen": 69.6,
+      "gainMin": 63.1,
+      "gainMax": 77.1
+    },
+    {
+      "n": 50,
+      "gainMoyen": 77.4,
+      "gainMin": 73.2,
+      "gainMax": 80.3
+    }
+  ]
+}

@@ -10,6 +10,7 @@
     "dev:client": "npm --prefix client run dev",
     "build": "npm --prefix server run build && npm --prefix client run build",
     "test": "npm --prefix server run test",
+    "bench": "npm --prefix server run bench",
     "db:setup": "npm --prefix server run db:setup"
   },
   "devDependencies": {
