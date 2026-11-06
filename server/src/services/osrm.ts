@@ -13,6 +13,7 @@
 import { env } from '../lib/env.js';
 import { ServiceIndisponibleError } from './nominatim.js';
 import type { Coordonnee } from '../algorithms/distance.js';
+import { matriceDepuisPack, traceDepuisPack } from './packDemo.js';
 
 function coordsVersChaine(points: Coordonnee[]): string {
   // OSRM attend l'ordre lng,lat séparé par des points-virgules.
@@ -48,6 +49,8 @@ interface ReponseTable {
 export async function matriceDistancesOSRM(
   points: Coordonnee[],
 ): Promise<{ distances: number[][]; durations: number[][] }> {
+  const pack = matriceDepuisPack(points); // exemple de démo : données OSRM pré-calculées
+  if (pack) return pack;
   const url = new URL(
     `/table/v1/driving/${coordsVersChaine(points)}`,
     env.OSRM_URL,
@@ -78,6 +81,8 @@ export async function traceItineraire(points: Coordonnee[]): Promise<{
   distance: number;
   duree: number;
 }> {
+  const pack = traceDepuisPack(points);
+  if (pack) return pack;
   const url = new URL(
     `/route/v1/driving/${coordsVersChaine(points)}`,
     env.OSRM_URL,

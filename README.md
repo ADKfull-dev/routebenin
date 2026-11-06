@@ -46,8 +46,11 @@ Code entièrement maison (aucune bibliothèque d'optimisation externe), dans
 7. **Multi-livreurs (VRP)** — `vrp.ts` : balayage angulaire autour du dépôt
    (tous les points de départ essayés), TSP par secteur, puis échanges et
    déplacements entre tournées. Deux critères :
-   - **charges équilibrées** (défaut) : charge = distance + 2 km par arrêt
-     (≈ 5 min de livraison) ; on minimise Σ charge² = K·(moyenne² + variance) ;
+   - **charges équilibrées** (défaut) : charge = temps de conduite (durées OSRM)
+     + 5 min par livraison ; on minimise Σ charge² = K·(moyenne² + variance).
+     Sans durées (repli vol d'oiseau) : distance + 2 km par arrêt.
+     Exemple de Cotonou, 3 livreurs : 73 / 69 / 74 min de travail (écart 5 min)
+     contre 73 / 48 / 96 min avec « même nombre d'arrêts » ;
    - **même nombre d'arrêts** : distance totale minimale, ⌈n / K⌉ arrêts max.
 
 Le TSP étant NP-difficile, cette approche offre un excellent compromis
@@ -160,6 +163,25 @@ Sur la page **Nouvelle tournée**, le bouton **« Charger un exemple »** insèr
 Akpakpa, Cadjèhoun, Ganhi, Haie Vive, Abomey-Calavi, Porto-Novo…). Les
 coordonnées sont réelles ; la **tournée est fictive**, mais les distances et le
 gain calculés sont **réels**.
+
+### Démo fiable sans dépendre du serveur OSRM public
+
+Pour ces 15 points, l'application embarque un **pack démo**
+(`client/src/data/packDemo.json`, chargé à la demande) : la matrice OSRM
+complète (distances et durées) et la géométrie routière des 210 trajets
+point → point, dans les deux sens. N'importe quel ordre de passage, en tournée
+unique ou multi-livreurs, est rejoué à partir de ces tronçons, **sans requête
+vers OSRM** : la démo reste instantanée même si le serveur public est saturé
+ou si le réseau de la salle est faible. Les données sont de vraies données OSRM.
+
+```bash
+npm --prefix server run pack-demo   # régénère le pack (~4 min, 1 requête/s)
+```
+
+Limites : le fond de carte (tuiles OpenStreetMap) et la recherche d'adresses
+nécessitent toujours internet ; toute adresse ajoutée hors de l'exemple passe
+par OSRM normalement. Pour une indépendance totale, hébergez OSRM (Docker,
+section « Services géographiques »).
 
 ---
 

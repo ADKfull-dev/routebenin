@@ -20,37 +20,37 @@
 <line x1="64" x2="530" y1="364" y2="364" stroke="#52514e" stroke-width="1"/>
 <text x="297" y="406" font-size="12" text-anchor="middle" fill="#52514e">Nombre de points</text>
 <text transform="translate(18 221) rotate(-90)" font-size="12" text-anchor="middle" fill="#52514e">Temps de calcul (ms)</text>
-<path d="M64.0,363.8 L88.5,363.0 L113.1,362.6 L162.1,359.7 L223.4,345.1 L284.7,325.3 L407.4,272.6 L530.0,118.8" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M64.0,363.8 L88.5,363.4 L113.1,361.4 L162.1,359.1 L223.4,345.3 L284.7,321.7 L407.4,229.4 L530.0,118.4" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="64" cy="363.8427" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=10 : 0,01</title></circle>
-<circle cx="88.52631578947368" cy="362.999" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=20 : 0,07</title></circle>
-<circle cx="113.05263157894737" cy="362.57" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=30 : 0,1</title></circle>
-<circle cx="162.10526315789474" cy="359.71" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=50 : 0,3</title></circle>
-<circle cx="223.42105263157896" cy="345.124" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=75 : 1,32</title></circle>
-<circle cx="284.7368421052631" cy="325.2899" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=100 : 2,71</title></circle>
-<circle cx="407.36842105263156" cy="272.6373" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=150 : 6,39</title></circle>
-<circle cx="530" cy="118.75500000000002" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=200 : 17,15</title></circle>
-<path d="M64.0,364.0 L88.5,363.9 L113.1,363.8 L162.1,363.6 L223.4,362.7 L284.7,362.0 L407.4,360.6 L530.0,357.3" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="88.52631578947368" cy="363.428" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=20 : 0,04</title></circle>
+<circle cx="113.05263157894737" cy="361.4403" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=30 : 0,18</title></circle>
+<circle cx="162.10526315789474" cy="359.0951" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=50 : 0,34</title></circle>
+<circle cx="223.42105263157896" cy="345.3099" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=75 : 1,31</title></circle>
+<circle cx="284.7368421052631" cy="321.7435" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=100 : 2,96</title></circle>
+<circle cx="407.36842105263156" cy="229.36550000000003" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=150 : 9,41</title></circle>
+<circle cx="530" cy="118.4118" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt + Or-opt — N=200 : 17,17</title></circle>
+<path d="M64.0,364.0 L88.5,363.9 L113.1,363.8 L162.1,363.6 L223.4,362.6 L284.7,362.3 L407.4,358.5 L530.0,357.9" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="64" cy="363.9714" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=10 : 0</title></circle>
-<circle cx="88.52631578947368" cy="363.8713" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=20 : 0,01</title></circle>
-<circle cx="113.05263157894737" cy="363.8427" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=30 : 0,01</title></circle>
+<circle cx="88.52631578947368" cy="363.9142" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=20 : 0,01</title></circle>
+<circle cx="113.05263157894737" cy="363.7569" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=30 : 0,02</title></circle>
 <circle cx="162.10526315789474" cy="363.5996" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=50 : 0,03</title></circle>
-<circle cx="223.42105263157896" cy="362.713" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=75 : 0,09</title></circle>
-<circle cx="284.7368421052631" cy="361.9694" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=100 : 0,14</title></circle>
-<circle cx="407.36842105263156" cy="360.6252" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=150 : 0,24</title></circle>
-<circle cx="530" cy="357.3219" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=200 : 0,47</title></circle>
-<path d="M64.0,363.9 L88.5,363.7 L113.1,363.3 L162.1,361.9 L223.4,355.5 L284.7,355.0 L407.4,340.8 L530.0,320.7" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="223.42105263157896" cy="362.5986" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=75 : 0,1</title></circle>
+<circle cx="284.7368421052631" cy="362.3412" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=100 : 0,12</title></circle>
+<circle cx="407.36842105263156" cy="358.5231" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=150 : 0,38</title></circle>
+<circle cx="530" cy="357.851" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>PPV seul — N=200 : 0,43</title></circle>
+<path d="M64.0,363.9 L88.5,363.7 L113.1,362.8 L162.1,361.9 L223.4,357.1 L284.7,352.9 L407.4,330.1 L530.0,320.5" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="64" cy="363.8999" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=10 : 0,01</title></circle>
-<circle cx="88.52631578947368" cy="363.6568" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=20 : 0,02</title></circle>
-<circle cx="113.05263157894737" cy="363.3422" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=30 : 0,05</title></circle>
-<circle cx="162.10526315789474" cy="361.9265" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=50 : 0,14</title></circle>
-<circle cx="223.42105263157896" cy="355.4629" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=75 : 0,6</title></circle>
-<circle cx="284.7368421052631" cy="355.0196" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=100 : 0,63</title></circle>
-<circle cx="407.36842105263156" cy="340.7768" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=150 : 1,62</title></circle>
-<circle cx="530" cy="320.6996" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=200 : 3,03</title></circle>
-<line x1="540" x2="552" y1="118.75500000000002" y2="118.75500000000002" stroke="#2a78d6" stroke-width="2"/>
-<text x="558" y="122.75500000000002" font-size="12" fill="#0b0b0b">PPV + 2-opt + Or-opt</text>
-<line x1="540" x2="552" y1="320.6996" y2="320.6996" stroke="#1baf7a" stroke-width="2"/>
-<text x="558" y="324.6996" font-size="12" fill="#0b0b0b">PPV + 2-opt</text>
-<line x1="540" x2="552" y1="357.3219" y2="357.3219" stroke="#eb6834" stroke-width="2"/>
-<text x="558" y="361.3219" font-size="12" fill="#0b0b0b">PPV seul</text>
+<circle cx="88.52631578947368" cy="363.6854" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=20 : 0,02</title></circle>
+<circle cx="113.05263157894737" cy="362.8274" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=30 : 0,08</title></circle>
+<circle cx="162.10526315789474" cy="361.9122" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=50 : 0,15</title></circle>
+<circle cx="223.42105263157896" cy="357.0645" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=75 : 0,49</title></circle>
+<circle cx="284.7368421052631" cy="352.9461" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=100 : 0,77</title></circle>
+<circle cx="407.36842105263156" cy="330.109" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=150 : 2,37</title></circle>
+<circle cx="530" cy="320.5137" r="4" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"><title>PPV + 2-opt — N=200 : 3,04</title></circle>
+<line x1="540" x2="552" y1="118.4118" y2="118.4118" stroke="#2a78d6" stroke-width="2"/>
+<text x="558" y="122.4118" font-size="12" fill="#0b0b0b">PPV + 2-opt + Or-opt</text>
+<line x1="540" x2="552" y1="320.5137" y2="320.5137" stroke="#1baf7a" stroke-width="2"/>
+<text x="558" y="324.5137" font-size="12" fill="#0b0b0b">PPV + 2-opt</text>
+<line x1="540" x2="552" y1="357.851" y2="357.851" stroke="#eb6834" stroke-width="2"/>
+<text x="558" y="361.851" font-size="12" fill="#0b0b0b">PPV seul</text>
 </svg>

@@ -8,7 +8,7 @@ import type { ResultatOptimisation } from '../types';
 import { couleurLivreur, encreSur } from '../lib/couleurs';
 import { formatDistance, formatDuree } from '../lib/format';
 import { libelleCourt } from '../lib/feuilleRoute';
-import { charge } from '../lib/vrp';
+import { charge, COUT_ARRET_M, COUT_ARRET_S } from '../lib/vrp';
 import { ExportActions } from './ExportActions';
 
 interface Props {
@@ -20,7 +20,13 @@ interface Props {
 
 export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: Props) {
   const livreurs = resultat.livreurs ?? [];
-  const charges = livreurs.map((l) => charge(l.distanceOptimisee, l.nombreDestinations));
+  // Charge de travail : temps de conduite + 5 min par livraison (ou, sans
+  // durées, distance + 2 km par arrêt) — le même critère que la répartition.
+  const charges = livreurs.map((l) =>
+    l.dureeSecondes !== null
+      ? charge(l.dureeSecondes, l.nombreDestinations, COUT_ARRET_S)
+      : charge(l.distanceOptimisee, l.nombreDestinations, COUT_ARRET_M),
+  );
   const chargeMax = Math.max(...charges, 1);
   return (
     <section className="carte p-4">
@@ -56,11 +62,13 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
                   <span className="block text-sm font-semibold text-nuit">Livreur {i + 1}</span>
                   <span className="chiffre block text-xs text-nuit/55">
                     {l.nombreDestinations} arrêt{l.nombreDestinations > 1 ? 's' : ''} · {formatDistance(l.distanceOptimisee)}
-                    {l.dureeSecondes !== null ? ` · ${formatDuree(l.dureeSecondes)}` : ''}
+                    {l.dureeSecondes !== null
+                      ? ` · ${formatDuree(l.dureeSecondes)} de route + ${formatDuree(COUT_ARRET_S * l.nombreDestinations)} sur place`
+                      : ''}
                   </span>
                   <span
                     className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-brume"
-                    title="Charge de travail estimée : route + 5 min par livraison"
+                    title="Charge de travail estimée : temps de route + 5 min par livraison"
                     aria-label={`Charge relative : ${Math.round((charges[i] / chargeMax) * 100)} %`}
                   >
                     <span

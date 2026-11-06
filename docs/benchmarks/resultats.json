@@ -1,6 +1,6 @@
 {
   "meta": {
-    "genereLe": "2026-11-06T12:00:06.143Z",
+    "genereLe": "2026-11-06T12:11:37.036Z",
     "node": "v22.11.0",
     "distances": "Haversine (vol d’oiseau), points aléatoires à graine fixe dans l’emprise Cotonou / Abomey-Calavi"
   },
@@ -133,63 +133,63 @@
     {
       "n": 20,
       "tempsMs": {
-        "complet": 0.07,
-        "ppv": 0.009,
-        "ppv2opt": 0.024
+        "complet": 0.04,
+        "ppv": 0.006,
+        "ppv2opt": 0.022
       },
       "ameliorationVsPpv": 17.42
     },
     {
       "n": 30,
       "tempsMs": {
-        "complet": 0.1,
-        "ppv": 0.011,
-        "ppv2opt": 0.046
+        "complet": 0.179,
+        "ppv": 0.017,
+        "ppv2opt": 0.082
       },
       "ameliorationVsPpv": 10.9
     },
     {
       "n": 50,
       "tempsMs": {
-        "complet": 0.3,
+        "complet": 0.343,
         "ppv": 0.028,
-        "ppv2opt": 0.145
+        "ppv2opt": 0.146
       },
       "ameliorationVsPpv": 13.5
     },
     {
       "n": 75,
       "tempsMs": {
-        "complet": 1.32,
-        "ppv": 0.09,
-        "ppv2opt": 0.597
+        "complet": 1.307,
+        "ppv": 0.098,
+        "ppv2opt": 0.485
       },
       "ameliorationVsPpv": 16.99
     },
     {
       "n": 100,
       "tempsMs": {
-        "complet": 2.707,
-        "ppv": 0.142,
-        "ppv2opt": 0.628
+        "complet": 2.955,
+        "ppv": 0.116,
+        "ppv2opt": 0.773
       },
       "ameliorationVsPpv": 12.44
     },
     {
       "n": 150,
       "tempsMs": {
-        "complet": 6.389,
-        "ppv": 0.236,
-        "ppv2opt": 1.624
+        "complet": 9.415,
+        "ppv": 0.383,
+        "ppv2opt": 2.37
       },
       "ameliorationVsPpv": 14.98
     },
     {
       "n": 200,
       "tempsMs": {
-        "complet": 17.15,
-        "ppv": 0.467,
-        "ppv2opt": 3.028
+        "complet": 17.174,
+        "ppv": 0.43,
+        "ppv2opt": 3.041
       },
       "ameliorationVsPpv": 17.08
     }
@@ -241,7 +241,7 @@
       "chargeMaxKm": 57.7,
       "ecartChargesKm": 7.9,
       "gainVsNaif": 59.7,
-      "tempsMs": 10.4
+      "tempsMs": 10
     },
     {
       "scenario": "20 adresses en ville",
@@ -251,7 +251,7 @@
       "chargeMaxKm": 57.8,
       "ecartChargesKm": 9.2,
       "gainVsNaif": 60.4,
-      "tempsMs": 19
+      "tempsMs": 20.1
     },
     {
       "scenario": "20 adresses en ville",
@@ -281,7 +281,7 @@
       "chargeMaxKm": 40.3,
       "ecartChargesKm": 13.8,
       "gainVsNaif": 46.9,
-      "tempsMs": 5.3
+      "tempsMs": 5.9
     },
     {
       "scenario": "20 adresses en ville",
@@ -291,7 +291,7 @@
       "chargeMaxKm": 41,
       "ecartChargesKm": 17.3,
       "gainVsNaif": 49.1,
-      "tempsMs": 18.3
+      "tempsMs": 20.5
     },
     {
       "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
@@ -301,7 +301,7 @@
       "chargeMaxKm": 91.4,
       "ecartChargesKm": 36.3,
       "gainVsNaif": 51.9,
-      "tempsMs": 6
+      "tempsMs": 6.2
     },
     {
       "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
@@ -311,7 +311,7 @@
       "chargeMaxKm": 82.1,
       "ecartChargesKm": 18.6,
       "gainVsNaif": 52.4,
-      "tempsMs": 19.6
+      "tempsMs": 21.5
     },
     {
       "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
@@ -321,7 +321,7 @@
       "chargeMaxKm": 79.3,
       "ecartChargesKm": 42.1,
       "gainVsNaif": 46.7,
-      "tempsMs": 6.1
+      "tempsMs": 7.1
     },
     {
       "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
@@ -331,7 +331,7 @@
       "chargeMaxKm": 70,
       "ecartChargesKm": 29.5,
       "gainVsNaif": 46.9,
-      "tempsMs": 19.4
+      "tempsMs": 22
     },
     {
       "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
@@ -341,7 +341,7 @@
       "chargeMaxKm": 73.3,
       "ecartChargesKm": 51.5,
       "gainVsNaif": 44.4,
-      "tempsMs": 8.7
+      "tempsMs": 9.3
     },
     {
       "scenario": "20 adresses + 1 point isolé (type Porto-Novo)",
@@ -351,7 +351,7 @@
       "chargeMaxKm": 63.6,
       "ecartChargesKm": 36.3,
       "gainVsNaif": 44.9,
-      "tempsMs": 24.5
+      "tempsMs": 27.9
     }
   ]
 }

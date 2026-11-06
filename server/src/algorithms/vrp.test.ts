@@ -1,6 +1,6 @@
 /** Tests de la répartition multi-livreurs (VRP). */
 import { describe, it, expect } from 'vitest';
-import { repartirTournees, repartitionNaive, taillesEquilibrees, charge } from './vrp';
+import { repartirTournees, repartitionNaive, taillesEquilibrees, charge, coutRepartition, COUT_ARRET_S } from './vrp';
 import { matriceHaversine, type Coordonnee } from './distance';
 
 function points(n: number, graine = 7): Coordonnee[] {
@@ -90,5 +90,33 @@ describe('repartirTournees', () => {
     const t0 = performance.now();
     repartirTournees(D, P, 0, 5);
     expect(performance.now() - t0).toBeLessThan(3000);
+  });
+
+  it('avec les durées : équilibre le TEMPS de travail (conduite + 5 min/arrêt)', () => {
+    // Point isolé relié par une voie rapide (70 km/h), le reste en ville (25 km/h).
+    for (const graine of [1, 2, 3, 4]) {
+      const P = [...points(16, graine), { lat: 6.5, lng: 2.63 }];
+      const D = matriceHaversine(P);
+      const iso = P.length - 1;
+      const T = D.map((l, i) => l.map((d, j) => d / ((i === iso || j === iso ? 70 : 25) / 3.6)));
+      // Critère en temps : Σ (conduite + 5 min × arrêts)²
+      const critereTemps = (r: ReturnType<typeof repartirTournees>) =>
+        coutRepartition(
+          r.tournees.map((t) => {
+            let s = 0;
+            for (let i = 0; i < t.length; i++) s += T[t[i]][t[(i + 1) % t.length]];
+            return s;
+          }),
+          r.tournees.map((t) => t.length - 1),
+          'equilibre',
+          COUT_ARRET_S,
+        );
+      const avecDurees = repartirTournees(D, P, 0, 3, 'equilibre', { durees: T });
+      const parArrets = repartirTournees(D, P, 0, 3, 'arrets');
+      // Garanti par construction : la recherche repart aussi de la solution « arrets ».
+      expect(critereTemps(avecDurees)).toBeLessThanOrEqual(critereTemps(parArrets) + 1e-9);
+      // Les distances renvoyées restent des distances (mètres), pas des durées.
+      expect(avecDurees.total).toBeGreaterThan(1000);
+    }
   });
 });

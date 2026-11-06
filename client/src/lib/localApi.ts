@@ -18,6 +18,7 @@ import {
 } from './apiTypes';
 import { solveTour, computeTourDistance, matriceHaversine, type Coordonnee } from './tsp';
 import { repartirTournees, repartitionNaive, type CritereVrp } from './vrp';
+import { matriceDepuisPack, traceDepuisPack } from './packDemo';
 
 const OSRM = 'https://router.project-osrm.org';
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
@@ -53,6 +54,8 @@ function lireProfil(): Profil {
 const coordsChaine = (p: Coordonnee[]) => p.map((c) => `${c.lng},${c.lat}`).join(';');
 
 async function osrmTable(points: Coordonnee[]) {
+  const pack = await matriceDepuisPack(points); // exemple de démo : données OSRM pré-calculées
+  if (pack) return pack;
   const url = `${OSRM}/table/v1/driving/${coordsChaine(points)}?annotations=distance,duration`;
   const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw new Error('osrm');
@@ -62,6 +65,8 @@ async function osrmTable(points: Coordonnee[]) {
 }
 
 async function osrmRoute(points: Coordonnee[]) {
+  const pack = await traceDepuisPack(points);
+  if (pack) return pack;
   const url = `${OSRM}/route/v1/driving/${coordsChaine(points)}?overview=full&geometries=geojson`;
   const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw new Error('osrm');
@@ -88,7 +93,7 @@ async function optimiserMultiLivreurs(
   k: number,
   critere: CritereVrp,
 ): Promise<ResultatOptimisation> {
-  const vrp = repartirTournees(distances, noeuds.map((a) => ({ lat: a.lat, lng: a.lng })), 0, k, critere);
+  const vrp = repartirTournees(distances, noeuds.map((a) => ({ lat: a.lat, lng: a.lng })), 0, k, critere, { durees: durations });
   const distanceInitiale = repartitionNaive(distances, 0, k);
   const geometries = await Promise.all(
     vrp.tournees.map((t) =>

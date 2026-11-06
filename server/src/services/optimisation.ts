@@ -241,7 +241,7 @@ async function optimiserMultiLivreurs(
   critere: CritereVrp,
 ): Promise<ResultatOptimisation> {
   const coords = noeuds.map((a) => ({ lat: a.lat, lng: a.lng }));
-  const vrp = repartirTournees(distances, coords, 0, k, critere);
+  const vrp = repartirTournees(distances, coords, 0, k, critere, { durees: durations });
   const distanceInitiale = repartitionNaive(distances, 0, k);
 
   const geometries = await Promise.all(

@@ -503,8 +503,10 @@ ${gain.map((g) => `| ${g.n} | ${v(g.gainMoyen)} % | ${v(g.gainMin)} % | ${v(g.ga
 
 ## 4. Multi-livreurs : deux critères de répartition
 
-${INSTANCES_VRP} instances par ligne (21 points, distances Haversine). **Charge** d'un
-livreur = distance + 2 km par arrêt (≈ 5 min de livraison en ville).
+${INSTANCES_VRP} instances par ligne (21 points, distances Haversine, donc sans
+durées). **Charge** d'un livreur = distance + 2 km par arrêt (≈ 5 min de
+livraison en ville). Dans l'application, avec les durées OSRM, la charge est
+mesurée en **temps** : conduite + 5 min par livraison.
 « Même nombre d'arrêts » minimise la distance totale avec au plus ⌈n/K⌉ arrêts
 par livreur ; « charges équilibrées » minimise Σ charge² (= K·(moyenne² + variance)).
 

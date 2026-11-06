@@ -6,9 +6,11 @@
  *
  * Deux critères, au choix :
  *  - « charges équilibrées » (défaut) : la charge d'un livreur est
- *        wᵢ = distance de sa tournée + C × nombre d'arrêts
- *    (C = temps passé à chaque livraison, converti en distance : 5 min à
- *    ~25 km/h en ville ≈ 2 km). On minimise Σ wᵢ². Comme
+ *        wᵢ = coût de sa tournée + C × nombre d'arrêts
+ *    où le coût est la DURÉE de conduite (matrice des durées OSRM) et
+ *    C = 5 min passées à chaque livraison. Sans durées (repli vol d'oiseau),
+ *    on raisonne en distance avec C = 2 km (≈ 5 min à 25 km/h en ville).
+ *    On minimise Σ wᵢ². Comme
  *        Σ wᵢ² = K · (moyenne² + variance),
  *    ce critère réduit à la fois la charge totale ET l'écart entre livreurs,
  *    sans jamais récompenser un détour (allonger une tournée augmente Σ wᵢ²).
@@ -50,20 +52,27 @@ export interface ResultatVrp {
 }
 
 const EPS = 1e-9;
-/** Temps de service d'un arrêt, exprimé en mètres équivalents (5 min ≈ 2 km en ville). */
+/** Temps de service d'un arrêt quand la matrice est en secondes (5 min). */
+export const COUT_ARRET_S = 300;
+/** Temps de service d'un arrêt en mètres équivalents, quand la matrice est en mètres (5 min ≈ 2 km en ville). */
 export const COUT_ARRET_M = 2000;
 
 /** Distance d'une tournée fermée (dépôt + arrêts). */
 const longueur = (D: number[][], t: number[]) => computeTourDistance(D, t);
 
 /** Charge de travail d'un livreur : conduite + temps de service aux arrêts. */
-export const charge = (distance: number, arrets: number) => distance + COUT_ARRET_M * arrets;
+export const charge = (cout: number, arrets: number, coutArret = COUT_ARRET_M) => cout + coutArret * arrets;
 
 /** Valeur du critère à minimiser (longueurs et nombres d'arrêts par tournée). */
-export function coutRepartition(distances: number[], arrets: number[], critere: CritereVrp): number {
-  if (critere === 'arrets') return distances.reduce((s, d) => s + d, 0);
-  // Σ wᵢ² (en km² pour garder des nombres raisonnables)
-  return distances.reduce((s, d, i) => s + (charge(d, arrets[i]) / 1000) ** 2, 0);
+export function coutRepartition(
+  couts: number[],
+  arrets: number[],
+  critere: CritereVrp,
+  coutArret = COUT_ARRET_M,
+): number {
+  if (critere === 'arrets') return couts.reduce((s, d) => s + d, 0);
+  // Σ wᵢ² (mis à l'échelle /1000 pour garder des nombres raisonnables)
+  return couts.reduce((s, d, i) => s + (charge(d, arrets[i], coutArret) / 1000) ** 2, 0);
 }
 
 /**
@@ -92,7 +101,14 @@ function angles(points: PointPlan[], depot: number): number[] {
 }
 
 /** Étape 1 + 2 : balayage angulaire, meilleur point de départ, TSP par secteur. */
-function balayage(D: number[][], points: PointPlan[], depot: number, k: number, critere: CritereVrp): number[][] {
+function balayage(
+  D: number[][],
+  points: PointPlan[],
+  depot: number,
+  k: number,
+  critere: CritereVrp,
+  coutArret: number,
+): number[][] {
   const a = angles(points, depot);
   const destinations = points.map((_, i) => i).filter((i) => i !== depot);
   destinations.sort((i, j) => a[i] - a[j]);
@@ -109,7 +125,7 @@ function balayage(D: number[][], points: PointPlan[], depot: number, k: number, 
       tournees.push(ordonnerGroupe(D, depot, cercle.slice(pos, pos + t)));
       pos += t;
     }
-    const cout = coutRepartition(tournees.map((t) => longueur(D, t)), tournees.map((t) => t.length - 1), critere);
+    const cout = coutRepartition(tournees.map((t) => longueur(D, t)), tournees.map((t) => t.length - 1), critere, coutArret);
     if (cout < meilleurCout - EPS) {
       meilleurCout = cout;
       meilleur = tournees;
@@ -125,6 +141,7 @@ function ameliorerEntreTournees(
   tournees: number[][],
   critere: CritereVrp,
   capacite: number,
+  coutArret: number,
 ): number[][] {
   const t = tournees.map((x) => x.slice());
   const dist = t.map((x) => longueur(D, x));
@@ -136,15 +153,16 @@ function ameliorerEntreTournees(
       dist.map((d, i) => (i === a ? dA : i === b ? dB : d)),
       t.map((x, i) => (i === a ? nouvA.length : i === b ? nouvB.length : x.length) - 1),
       critere,
+      coutArret,
     );
 
-  let coutCourant = coutRepartition(dist, nbArrets(), critere);
+  let coutCourant = coutRepartition(dist, nbArrets(), critere, coutArret);
   const appliquer = (a: number, nouvA: number[], dA: number, b: number, nouvB: number[], dB: number) => {
     t[a] = nouvA;
     t[b] = nouvB;
     dist[a] = dA;
     dist[b] = dB;
-    coutCourant = coutRepartition(dist, nbArrets(), critere);
+    coutCourant = coutRepartition(dist, nbArrets(), critere, coutArret);
   };
 
   let ameliore = true;
@@ -204,6 +222,8 @@ function ameliorerEntreTournees(
  * @param depot    indice du dépôt (point de départ commun)
  * @param k        nombre de livreurs (borné au nombre de destinations)
  * @param critere  « equilibre » (défaut) ou « arrets » (voir en-tête)
+ * @param options.durees  matrice des durées (s) : si fournie, « equilibre »
+ *                        équilibre le TEMPS de travail (conduite + 5 min/arrêt)
  */
 export function repartirTournees(
   D: number[][],
@@ -211,6 +231,7 @@ export function repartirTournees(
   depot: number,
   k: number,
   critere: CritereVrp = 'equilibre',
+  options: { durees?: number[][] | null } = {},
 ): ResultatVrp {
   const n = D.length - 1; // destinations
   if (n < 1) return { tournees: [[depot]], distances: [0], total: 0, max: 0 };
@@ -222,18 +243,21 @@ export function repartirTournees(
   } else {
     // Solution « même nombre d'arrêts » : balayage + amélioration sous plafond ⌈n/K⌉.
     const parArrets = ameliorerEntreTournees(
-      D, depot, balayage(D, points, depot, livreurs, 'arrets'), 'arrets', Math.ceil(n / livreurs),
+      D, depot, balayage(D, points, depot, livreurs, 'arrets', 0), 'arrets', Math.ceil(n / livreurs), 0,
     );
     if (critere === 'arrets') {
       tournees = parArrets;
     } else {
-      // « Charges équilibrées » : recherche locale depuis deux points de départ
-      // (balayage dédié, et la solution à nombre d'arrêts égal), on garde la meilleure.
+      // « Charges équilibrées » : en temps si les durées sont connues, sinon en distance.
+      const C = options.durees ?? D;
+      const coutArret = options.durees ? COUT_ARRET_S : COUT_ARRET_M;
+      // Recherche locale depuis deux points de départ (balayage dédié, et la
+      // solution à nombre d'arrêts égal) ; on garde la meilleure.
       const cout = (t: number[][]) =>
-        coutRepartition(t.map((x) => longueur(D, x)), t.map((x) => x.length - 1), 'equilibre');
+        coutRepartition(t.map((x) => longueur(C, x)), t.map((x) => x.length - 1), 'equilibre', coutArret);
       const candidats = [
-        ameliorerEntreTournees(D, depot, balayage(D, points, depot, livreurs, 'equilibre'), 'equilibre', n),
-        ameliorerEntreTournees(D, depot, parArrets, 'equilibre', n),
+        ameliorerEntreTournees(C, depot, balayage(C, points, depot, livreurs, 'equilibre', coutArret), 'equilibre', n, coutArret),
+        ameliorerEntreTournees(C, depot, parArrets, 'equilibre', n, coutArret),
       ];
       tournees = cout(candidats[0]) <= cout(candidats[1]) ? candidats[0] : candidats[1];
     }
