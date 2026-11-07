@@ -142,7 +142,9 @@ self.addEventListener('fetch', (event) => {
     if (req.mode === 'navigate') return event.respondWith(navigation(req));
     return event.respondWith(cacheDabord(CACHE_APP, req));
   }
-  if (url.hostname.endsWith('tile.openstreetmap.org')) return event.respondWith(tuile(event));
+  if (url.hostname.endsWith('tile.openstreetmap.org')) {
+    return event.respondWith(tuile(event));
+  }
   if (url.hostname === 'router.project-osrm.org' || url.hostname === 'nominatim.openstreetmap.org') {
     return event.respondWith(reseauDabord(event));
   }

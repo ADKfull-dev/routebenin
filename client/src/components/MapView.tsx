@@ -46,25 +46,44 @@ interface Props {
 
 const CENTRE_COTONOU: [number, number] = [6.37, 2.42];
 
+/**
+ * Marqueurs = mêmes pastilles que l'itinéraire du panneau : arrêts en jaune
+ * cerclés d'encre, départ en carré encre « D », arrivée en carré blanc « A ».
+ */
 function iconeMarqueur(m: MarqueurCarte): L.DivIcon {
-  const couleur =
-    m.couleur ?? (m.type === 'depart' ? '#0B1F3A' : m.type === 'arrivee' ? '#DC2626' : '#2563EB');
-  const contenu =
-    m.type === 'depart' ? 'D' : m.type === 'arrivee' ? 'A' : String(m.numero ?? '');
+  const taille = m.type === 'etape' ? 28 : 30;
+  let fond = '#FFC414';
+  let texte = '#171B3F';
+  let rayon = '50%';
+  let contenu = String(m.numero ?? '');
+  if (m.couleur) {
+    fond = m.couleur;
+    texte = encreSur(m.couleur);
+  }
+  if (m.type === 'depart') {
+    fond = '#171B3F';
+    texte = '#FFFFFF';
+    rayon = '7px';
+    contenu = 'D';
+  } else if (m.type === 'arrivee') {
+    fond = '#FFFFFF';
+    texte = '#171B3F';
+    rayon = '7px';
+    contenu = 'A';
+  }
   const html = `
     <div style="
       display:flex;align-items:center;justify-content:center;
-      width:30px;height:30px;border-radius:50% 50% 50% 0;
-      transform:rotate(-45deg);
-      background:${couleur};color:${encreSur(couleur)};font-weight:700;font-size:13px;
-      border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);opacity:${m.attenue ? 0.3 : 1};">
-      <span style="transform:rotate(45deg)">${contenu}</span>
-    </div>`;
+      width:${taille}px;height:${taille}px;border-radius:${rayon};
+      background:${fond};color:${texte};
+      font:700 13px/1 'Barlow Semi Condensed',Barlow,sans-serif;font-variant-numeric:tabular-nums;
+      border:2px solid #171B3F;box-shadow:0 0 0 2px #fff, 0 3px 8px rgba(23,27,63,.35);
+      opacity:${m.attenue ? 0.3 : 1};">${contenu}</div>`;
   return L.divIcon({
     className: 'marqueur-numero',
     html,
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
+    iconSize: [taille, taille],
+    iconAnchor: [taille / 2, taille / 2],
   });
 }
 
@@ -95,8 +114,8 @@ function GestionClic({ onClickCarte }: { onClickCarte?: (lat: number, lng: numbe
 
 type ModeComparaison = 'avant' | 'apres' | 'comparer';
 
-const COULEUR_OPTIMISE = '#1A56DB';
-const COULEUR_NAIF = '#E02424';
+const COULEUR_OPTIMISE = '#171B3F';
+const COULEUR_NAIF = '#C8372D';
 const DUREE_ANIMATION_MS = 2200;
 
 /**
@@ -176,7 +195,7 @@ export function MapView({ marqueurs, trace, traceInitial, traces, onClickCarte }
         {montrerOptimise && ligneAffichee.length > 1 && (
           <Polyline
             positions={ligneAffichee}
-            pathOptions={{ color: COULEUR_OPTIMISE, weight: 5, opacity: 0.9 }}
+            pathOptions={{ color: COULEUR_OPTIMISE, weight: 4.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
           />
         )}
         {multi &&
@@ -196,8 +215,8 @@ export function MapView({ marqueurs, trace, traceInitial, traces, onClickCarte }
 
       {comparaison && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[500] flex justify-center px-3">
-          <div className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-xl border border-ligne bg-white/95 p-1.5 text-xs shadow-pop">
-            <div className="flex rounded-lg bg-brume p-0.5" role="group" aria-label="Comparer les tracés">
+          <div className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-lg border border-ligne bg-white p-1.5 text-sm shadow-pop">
+            <div className="flex rounded-md bg-sol p-0.5" role="group" aria-label="Comparer les tracés">
               {(
                 [
                   ['avant', 'Avant'],
@@ -210,8 +229,8 @@ export function MapView({ marqueurs, trace, traceInitial, traces, onClickCarte }
                   type="button"
                   onClick={() => choisir(m)}
                   aria-pressed={mode === m}
-                  className={`rounded-md px-3 py-1.5 font-medium transition ${
-                    mode === m ? 'bg-white text-nuit shadow-carte' : 'text-nuit/55 hover:text-nuit'
+                  className={`rounded px-3 py-1.5 font-semibold transition-colors ${
+                    mode === m ? 'bg-encre text-white' : 'text-encre/60 hover:text-encre'
                   }`}
                 >
                   {libelle}
@@ -222,12 +241,12 @@ export function MapView({ marqueurs, trace, traceInitial, traces, onClickCarte }
               type="button"
               onClick={() => setJeton((j) => j + 1)}
               disabled={mode === 'avant'}
-              className="flex items-center gap-1 rounded-md px-2 py-1.5 font-medium text-electrique hover:bg-electrique-50 disabled:opacity-40"
+              className="flex items-center gap-1 rounded px-2 py-1.5 font-semibold text-encre hover:bg-sol disabled:opacity-40"
               aria-label="Rejouer l'animation"
             >
               <Play className="h-3.5 w-3.5" /> Rejouer
             </button>
-            <div className="flex items-center gap-3 px-1 text-nuit/60">
+            <div className="hidden items-center gap-3 px-1 text-encre/65 sm:flex">
               {mode !== 'apres' && (
                 <span className="flex items-center gap-1.5">
                   <span className="inline-block h-0.5 w-4 border-t-2 border-dashed" style={{ borderColor: COULEUR_NAIF }} />

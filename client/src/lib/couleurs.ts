@@ -14,6 +14,6 @@ export function encreSur(hex: string): string {
   const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
   const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
   const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-  // Contraste avec blanc vs avec encre (#0A1A2F, L ≈ 0.011)
-  return (1.05 / (L + 0.05) >= (L + 0.05) / 0.061) ? '#ffffff' : '#0A1A2F';
+  // Contraste avec blanc vs avec encre (#171B3F, L ≈ 0.011)
+  return (1.05 / (L + 0.05) >= (L + 0.05) / 0.061) ? '#ffffff' : '#171B3F';
 }

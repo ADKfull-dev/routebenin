@@ -1,10 +1,13 @@
 /**
- * StopList — liste des destinations, réordonnable (glisser-déposer + flèches)
- * et avec suppression. Les flèches assurent l'accessibilité clavier/mobile.
+ * StopList — destinations de la tournée, sous forme d'étapes de l'itinéraire :
+ * réordonnables (glisser-déposer + flèches, pour le clavier et le mobile) et
+ * supprimables. Rend des <li> à placer dans un <Itineraire>.
  */
 import { useRef, useState } from 'react';
-import { GripVertical, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, X } from 'lucide-react';
 import type { Arret } from '../types';
+import { Etape } from './Itineraire';
+import { libelleCourt } from '../lib/feuilleRoute';
 
 interface Props {
   destinations: Arret[];
@@ -20,71 +23,53 @@ function deplacer<T>(liste: T[], de: number, vers: number): T[] {
   return copie;
 }
 
+const btnIcone =
+  'flex h-8 w-8 items-center justify-center rounded-md text-encre/45 hover:bg-sol hover:text-encre disabled:pointer-events-none disabled:opacity-25';
+
 export function StopList({ destinations, onReordonner, onSupprimer }: Props) {
   const [glisse, setGlisse] = useState<number | null>(null);
   const survol = useRef<number | null>(null);
 
   const deposer = () => {
-    if (glisse === null || survol.current === null || glisse === survol.current) {
-      setGlisse(null);
-      return;
+    if (glisse !== null && survol.current !== null && glisse !== survol.current) {
+      onReordonner(deplacer(destinations, glisse, survol.current));
     }
-    onReordonner(deplacer(destinations, glisse, survol.current));
     setGlisse(null);
     survol.current = null;
   };
 
   return (
-    <ul className="flex flex-col gap-2">
+    <>
       {destinations.map((d, i) => (
-        <li
+        <Etape
           key={d.id}
+          type="etape"
+          numero={i + 1}
           draggable
           onDragStart={() => setGlisse(i)}
           onDragEnter={() => (survol.current = i)}
           onDragOver={(e) => e.preventDefault()}
           onDragEnd={deposer}
-          className={`flex items-center gap-2 rounded-xl border bg-white px-3 py-2.5 text-sm shadow-sm transition
-            dark:bg-nuit-500 dark:border-white/10
-            ${glisse === i ? 'border-electrique opacity-60' : 'border-slate-200'}`}
+          className={`group cursor-grab rounded-md ${glisse === i ? 'opacity-50' : ''}`}
+          actions={
+            <>
+              <button type="button" onClick={() => onReordonner(deplacer(destinations, i, i - 1))} disabled={i === 0} aria-label={`Monter ${d.label}`} className={btnIcone}>
+                <ArrowUp className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => onReordonner(deplacer(destinations, i, i + 1))} disabled={i === destinations.length - 1} aria-label={`Descendre ${d.label}`} className={btnIcone}>
+                <ArrowDown className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => onSupprimer(d.id)} aria-label={`Retirer ${d.label}`} className={`${btnIcone} hover:!bg-alerte-50 hover:!text-alerte`}>
+                <X className="h-4 w-4" />
+              </button>
+            </>
+          }
         >
-          <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-slate-300" aria-hidden />
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-electrique/10 text-xs font-bold text-electrique">
-            {i + 1}
-          </span>
-          <span className="flex-1 truncate text-slate-700 dark:text-slate-200" title={d.label}>
-            {d.label}
-          </span>
-          <div className="flex shrink-0 items-center">
-            <button
-              type="button"
-              onClick={() => onReordonner(deplacer(destinations, i, i - 1))}
-              disabled={i === 0}
-              aria-label="Monter"
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 disabled:opacity-30 dark:hover:bg-white/10"
-            >
-              <ArrowUp className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onReordonner(deplacer(destinations, i, i + 1))}
-              disabled={i === destinations.length - 1}
-              aria-label="Descendre"
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 disabled:opacity-30 dark:hover:bg-white/10"
-            >
-              <ArrowDown className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onSupprimer(d.id)}
-              aria-label={`Supprimer ${d.label}`}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-alerte/10 hover:text-alerte"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        </li>
+          <p className="truncate text-[0.9375rem] font-medium" title={d.label}>
+            {libelleCourt(d.label)}
+          </p>
+        </Etape>
       ))}
-    </ul>
+    </>
   );
 }

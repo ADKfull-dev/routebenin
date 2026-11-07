@@ -2,6 +2,9 @@
 import type { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 
+/** Section d'un panneau : séparée de la suivante par un filet. */
+export const SECTION = 'border-b border-ligne px-5 py-5 last:border-b-0';
+
 /** Indicateur de chargement circulaire. */
 export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
   return <Loader2 className={`animate-spin ${className}`} aria-hidden />;
@@ -9,63 +12,39 @@ export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
 
 /** Bloc de chargement (squelette). */
 export function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`animate-pulse rounded-md bg-ligne/70 ${className}`} aria-hidden />;
+}
+
+/** En-tête de page : titre + phrase d'aide + actions éventuelles. */
+export function EnTetePage({ titre, aide, actions }: { titre: string; aide?: string; actions?: ReactNode }) {
   return (
-    <div
-      className={`animate-pulse rounded-lg bg-ligne ${className}`}
-      aria-hidden
-    />
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 className="font-titre text-2xl font-bold tracking-tight">{titre}</h1>
+        {aide && <p className="mt-1 text-encre/60">{aide}</p>}
+      </div>
+      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+    </div>
   );
 }
 
-/** État vide illustré (quand aucune donnée). */
+/** État vide : ce qu'on peut faire ici, et le bouton pour le faire. */
 export function EmptyState({
-  icone,
   titre,
   description,
   action,
 }: {
-  icone: ReactNode;
   titre: string;
   description?: string;
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-ligne p-10 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brume text-electrique">
-        {icone}
-      </div>
+    <div className="feuille flex flex-col items-start gap-4 p-6 sm:p-8">
       <div>
-        <p className="font-semibold text-nuit">{titre}</p>
-        {description && <p className="mx-auto mt-1 max-w-sm text-sm text-nuit/55">{description}</p>}
+        <p className="font-titre text-xl font-semibold">{titre}</p>
+        {description && <p className="mt-1 max-w-md text-encre/60">{description}</p>}
       </div>
-      {action}
-    </div>
-  );
-}
-
-/** Carte de statistique (tableau de bord). */
-export function StatCard({
-  icone,
-  valeur,
-  libelle,
-  accent = false,
-}: {
-  icone: ReactNode;
-  valeur: string;
-  libelle: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="carte p-5">
-      <div
-        className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-          accent ? 'bg-succes/10 text-succes' : 'bg-electrique/10 text-electrique'
-        }`}
-      >
-        {icone}
-      </div>
-      <p className="chiffre mt-4 truncate text-3xl font-bold tracking-tight text-nuit">{valeur}</p>
-      <p className="mt-1 truncate text-sm text-nuit/55">{libelle}</p>
+      {action && <div className="flex flex-wrap gap-2">{action}</div>}
     </div>
   );
 }

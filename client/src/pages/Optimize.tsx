@@ -3,14 +3,17 @@
  * puis résultat d'optimisation.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Flag, Navigation, Sparkles, Wand2, RotateCcw, Save, Plus, Truck, Minus } from 'lucide-react';
+import { Navigation, Wand2, Save, Plus, Minus, Pencil } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { AddressSearch } from '../components/AddressSearch';
 import { StopList } from '../components/StopList';
 import { MapView, type MarqueurCarte } from '../components/MapView';
 import { ResultCard } from '../components/ResultCard';
 import { ExportActions } from '../components/ExportActions';
 import { LivreursPanel } from '../components/LivreursPanel';
-import { Spinner } from '../components/ui';
+import { Spinner, SECTION } from '../components/ui';
+import { Etape, Itineraire } from '../components/Itineraire';
+import { libelleCourt } from '../lib/feuilleRoute';
 import { useToast } from '../components/Toast';
 import { api, ApiError } from '../lib/api';
 import type { Arret, CritereLivreurs, ResultatOptimisation } from '../types';
@@ -46,8 +49,8 @@ export function Optimize() {
   useEffect(() => {
     const panneau = panneauRef.current;
     if (!resultat || !panneau) return;
-    panneau.scrollTop = 0;
-    if (panneau.getBoundingClientRect().top < 0) panneau.scrollIntoView({ block: 'start' }); // mobile
+    panneau.scrollTop = 0; // ordinateur : le panneau défile seul
+    window.scrollTo({ top: 0 }); // mobile : la carte (en haut) montre le trajet
   }, [resultat]);
 
   // Récupère la préférence « distances routières » définie dans les paramètres.
@@ -168,8 +171,17 @@ export function Optimize() {
     setDestinations(DESTINATIONS_DEMO);
     setArrivee(null);
     reinitialiserResultat();
-    toast.info('Exemple chargé : 14 adresses de Cotonou et environs.');
+    toast.info('Exemple chargé : 14 livraisons à Cotonou et environs.');
   };
+
+  // Lien « Essayer l'exemple » du tableau de bord : /optimiser?exemple=1
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    if (params.get('exemple') === null) return;
+    chargerExemple();
+    setParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toutEffacer = () => {
     setDepart(null);
@@ -228,102 +240,150 @@ export function Optimize() {
     }
   };
 
-  return (
-    <div className="flex h-full flex-col gap-4 p-4 md:h-[100dvh] md:flex-row md:p-6">
-      {/* Panneau de saisie / résultat */}
-      <div ref={panneauRef} className="flex w-full flex-col gap-4 overflow-y-auto md:w-[400px] md:shrink-0">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Nouvelle tournée</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Ajoutez vos points, puis lancez l’optimisation.
-          </p>
-        </div>
+  const actionsSaisie = (
+    <div className="flex items-center gap-4 text-sm">
+      <button type="button" onClick={chargerExemple} className="lien">
+        Charger l’exemple de Cotonou
+      </button>
+      {nbPoints > 0 && (
+        <button type="button" onClick={toutEffacer} className="font-semibold text-encre/60 hover:text-alerte">
+          Tout effacer
+        </button>
+      )}
+    </div>
+  );
 
+  return (
+    <div className="flex flex-col md:h-[100dvh] md:flex-row">
+      {/* Carte : en haut sur mobile, à droite sur ordinateur */}
+      <div className="relative h-[44vh] min-h-[280px] md:order-2 md:h-auto md:flex-1">
+        <MapView
+          marqueurs={marqueurs}
+          trace={trace}
+          traceInitial={traceInitial}
+          traces={traces}
+          onClickCarte={resultat ? undefined : clicCarte}
+        />
+        {marqueurs.length === 0 && (
+          <div className="pointer-events-none absolute inset-x-0 top-4 z-[500] flex justify-center px-4">
+            <p className="rounded-md bg-encre px-3.5 py-2 text-sm font-medium text-white shadow-pop">
+              Touchez la carte pour placer le point de départ
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Panneau de saisie / résultat */}
+      <div
+        ref={panneauRef}
+        className="flex flex-col bg-white md:order-1 md:w-[440px] md:shrink-0 md:overflow-y-auto md:shadow-panneau"
+      >
         {!resultat ? (
           <>
-            {/* Étape 1 — Départ */}
-            <section className="carte p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <label className="etiquette flex items-center gap-2">
-                  <Flag className="h-4 w-4 text-nuit dark:text-electrique" /> Point de départ
-                </label>
-                <button type="button" onClick={utiliserMaPosition} className="btn-fantome px-2 py-1 text-xs">
-                  <Navigation className="h-3.5 w-3.5" /> Ma position
-                </button>
+            <div className="px-5 pb-2 pt-6">
+              <h1 className="font-titre text-2xl font-bold tracking-tight">Nouvelle tournée</h1>
+              <p className="mt-1 text-encre/60">Saisissez le départ et les adresses à livrer, dans n’importe quel ordre.</p>
+              <div className="mt-3">{actionsSaisie}</div>
+            </div>
+
+            {/* Itinéraire : départ → livraisons → arrivée */}
+            <section className={SECTION}>
+              <div className="mb-2 flex items-baseline justify-between">
+                <h2 className="text-lg font-semibold">Itinéraire</h2>
+                <span className="chiffre aide">
+                  {destinations.length} livraison{destinations.length > 1 ? 's' : ''}
+                </span>
               </div>
-              {depart ? (
-                <div className="flex items-center justify-between gap-2 rounded-xl bg-nuit/5 px-3 py-2 text-sm dark:bg-white/5">
-                  <span className="truncate text-slate-700 dark:text-slate-200" title={depart.label}>
-                    {depart.label}
-                  </span>
-                  <button
-                    onClick={() => {
-                      setDepart(null);
-                      reinitialiserResultat();
-                    }}
-                    className="text-xs text-electrique hover:underline"
-                  >
-                    Changer
-                  </button>
-                </div>
-              ) : (
-                <AddressSearch onSelectionner={(a) => { setDepart(a); reinitialiserResultat(); }} placeholder="Adresse de départ…" />
-              )}
-            </section>
+              <Itineraire>
+                <Etape
+                  type="depart"
+                  premier
+                  pointille={destinations.length === 0}
+                  actions={
+                    !depart && (
+                      <button type="button" onClick={utiliserMaPosition} className="btn-fantome ml-1 px-2.5 py-2 text-sm" title="Utiliser ma position">
+                        <Navigation className="h-4 w-4" /> <span className="hidden sm:inline">Ma position</span>
+                      </button>
+                    )
+                  }
+                >
+                  {depart ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate text-[0.9375rem] font-semibold" title={depart.label}>
+                        {libelleCourt(depart.label)}
+                      </p>
+                      <button type="button" onClick={() => { setDepart(null); reinitialiserResultat(); }} className="lien shrink-0 text-sm">
+                        Changer
+                      </button>
+                    </div>
+                  ) : (
+                    <AddressSearch onSelectionner={(a) => { setDepart(a); reinitialiserResultat(); }} placeholder="Départ : dépôt, boutique…" />
+                  )}
+                </Etape>
 
-            {/* Étape 2 — Destinations */}
-            <section className="carte p-4">
-              <label className="etiquette mb-2 flex items-center gap-2">
-                <Plus className="h-4 w-4 text-electrique" /> Destinations ({destinations.length})
-              </label>
-              <AddressSearch onSelectionner={ajouterDestination} placeholder="Ajouter une destination…" />
-              <p className="mt-2 text-xs text-nuit/45">
+                <StopList
+                  destinations={destinations}
+                  onReordonner={(n) => { setDestinations(n); reinitialiserResultat(); }}
+                  onSupprimer={supprimerDestination}
+                />
+
+                <Etape type="ajout" pointilleHaut={destinations.length === 0} pointille dernier={nbLivreurs > 1}>
+                  <AddressSearch onSelectionner={ajouterDestination} placeholder="Ajouter une livraison…" />
+                </Etape>
+
+                {nbLivreurs === 1 && (
+                  <Etape type="arrivee" pointilleHaut dernier>
+                    {arrivee ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-[0.9375rem] font-semibold" title={arrivee.label}>
+                          {libelleCourt(arrivee.label)}
+                        </p>
+                        <button type="button" onClick={() => { setArrivee(null); reinitialiserResultat(); }} className="lien shrink-0 text-sm">
+                          Retirer
+                        </button>
+                      </div>
+                    ) : (
+                      <AddressSearch onSelectionner={(a) => { setArrivee(a); reinitialiserResultat(); }} placeholder="Arrivée : retour au départ si vide" />
+                    )}
+                  </Etape>
+                )}
+              </Itineraire>
+              <p className="aide mt-3 pl-10">
                 {destinations.length > 0 && destinations.length < 4
-                  ? "Astuce : ajoutez 4 destinations ou plus — c'est là que l'optimisation réduit vraiment la distance."
-                  : 'Astuce : cliquez sur la carte pour ajouter un point.'}
+                  ? 'L’ordre de passage compte à partir de 4 livraisons : c’est là que la distance baisse vraiment.'
+                  : 'Vous pouvez aussi toucher la carte pour ajouter un point.'}
               </p>
-              {destinations.length > 0 && (
-                <div className="mt-3">
-                  <StopList
-                    destinations={destinations}
-                    onReordonner={(n) => { setDestinations(n); reinitialiserResultat(); }}
-                    onSupprimer={supprimerDestination}
-                  />
-                </div>
-              )}
             </section>
 
-            {/* Étape 2 bis — Nombre de livreurs (VRP) */}
-            <section className="carte p-4">
-              <div className="flex items-center justify-between gap-3">
+            {/* Nombre de livreurs (VRP) */}
+            <section className={SECTION}>
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <label className="etiquette flex items-center gap-2" id="label-livreurs">
-                    <Truck className="h-4 w-4 text-electrique" /> Livreurs
-                  </label>
-                  <p className="mt-0.5 text-xs text-nuit/45">
+                  <h2 className="text-lg font-semibold" id="label-livreurs">Livreurs</h2>
+                  <p className="aide mt-0.5">
                     {nbLivreurs > 1
-                      ? 'Les adresses sont réparties équitablement ; chacun revient au départ.'
-                      : 'Plusieurs livreurs ? Répartissez la tournée entre eux.'}
+                      ? 'Les adresses sont réparties entre eux. Chacun revient au départ.'
+                      : 'Répartissez les livraisons entre plusieurs livreurs.'}
                   </p>
                 </div>
-                <div className="flex items-center gap-1" role="group" aria-labelledby="label-livreurs">
+                <div className="flex shrink-0 items-center rounded-md border border-ligne" role="group" aria-labelledby="label-livreurs">
                   <button
                     type="button"
                     onClick={() => { setNbLivreurs((k) => Math.max(1, k - 1)); reinitialiserResultat(); }}
                     disabled={nbLivreurs <= 1}
-                    className="btn-secondaire h-8 w-8 justify-center p-0"
+                    className="flex h-10 w-10 items-center justify-center text-encre hover:bg-sol disabled:opacity-30"
                     aria-label="Un livreur de moins"
                   >
                     <Minus className="h-4 w-4" />
                   </button>
-                  <span className="chiffre w-8 text-center text-lg font-semibold text-nuit" aria-live="polite">
+                  <span className="chiffre w-9 text-center font-titre text-xl font-bold" aria-live="polite">
                     {nbLivreurs}
                   </span>
                   <button
                     type="button"
                     onClick={() => { setNbLivreurs((k) => Math.min(NOMBRE_MAX_LIVREURS, k + 1)); reinitialiserResultat(); }}
                     disabled={nbLivreurs >= NOMBRE_MAX_LIVREURS}
-                    className="btn-secondaire h-8 w-8 justify-center p-0"
+                    className="flex h-10 w-10 items-center justify-center text-encre hover:bg-sol disabled:opacity-30"
                     aria-label="Un livreur de plus"
                   >
                     <Plus className="h-4 w-4" />
@@ -331,8 +391,8 @@ export function Optimize() {
                 </div>
               </div>
               {nbLivreurs > 1 && (
-                <div className="mt-3">
-                  <div className="flex rounded-lg bg-brume p-0.5 text-xs" role="group" aria-label="Critère de répartition">
+                <div className="mt-4">
+                  <div className="grid grid-cols-2 rounded-md bg-sol p-1 text-sm" role="group" aria-label="Critère de répartition">
                     {(
                       [
                         ['equilibre', 'Charges équilibrées'],
@@ -344,74 +404,52 @@ export function Optimize() {
                         type="button"
                         aria-pressed={critere === c}
                         onClick={() => { setCritere(c); reinitialiserResultat(); }}
-                        className={`flex-1 rounded-md px-2 py-1.5 font-medium transition ${
-                          critere === c ? 'bg-white text-nuit shadow-carte' : 'text-nuit/55 hover:text-nuit'
+                        className={`rounded px-2 py-2 font-semibold transition-colors ${
+                          critere === c ? 'bg-encre text-white' : 'text-encre/60 hover:text-encre'
                         }`}
                       >
                         {libelle}
                       </button>
                     ))}
                   </div>
-                  <p className="mt-1.5 text-xs text-nuit/45">
+                  <p className="aide mt-2">
                     {critere === 'equilibre'
-                      ? 'Équilibre le temps de travail (route + 5 min par livraison) : un livreur qui va loin a moins d’arrêts.'
+                      ? 'Équilibre le temps de travail (route + 5 min par livraison) : celui qui va loin a moins d’arrêts.'
                       : 'Chaque livreur reçoit le même nombre d’adresses, au plus court.'}
                   </p>
                 </div>
               )}
               {nbLivreurs > 1 && destinations.length > 0 && destinations.length < nbLivreurs && (
-                <p className="mt-2 text-xs text-attention">
-                  Seulement {destinations.length} destination{destinations.length > 1 ? 's' : ''} : {destinations.length} livreur{destinations.length > 1 ? 's' : ''} seront utilisés.
+                <p className="mt-2 text-sm text-attention">
+                  {destinations.length} livraison{destinations.length > 1 ? 's' : ''} seulement : {destinations.length} livreur{destinations.length > 1 ? 's' : ''} seront utilisés.
                 </p>
               )}
             </section>
 
-            {/* Étape 3 — Arrivée (optionnelle, tournée unique) */}
-            {nbLivreurs === 1 && (
-            <section className="carte p-4">
-              <label className="etiquette mb-2 flex items-center gap-2">
-                <Flag className="h-4 w-4 text-alerte" /> Arrivée (optionnel)
-              </label>
-              {arrivee ? (
-                <div className="flex items-center justify-between gap-2 rounded-xl bg-alerte/5 px-3 py-2 text-sm">
-                  <span className="truncate text-slate-700 dark:text-slate-200" title={arrivee.label}>
-                    {arrivee.label}
-                  </span>
-                  <button onClick={() => { setArrivee(null); reinitialiserResultat(); }} className="text-xs text-electrique hover:underline">
-                    Retirer
-                  </button>
-                </div>
-              ) : (
-                <AddressSearch onSelectionner={(a) => { setArrivee(a); reinitialiserResultat(); }} placeholder="Par défaut : retour au départ" />
-              )}
-            </section>
-            )}
-
-            {/* Actions */}
-            <div className="flex flex-col gap-2">
-              <button onClick={optimiser} disabled={!peutOptimiser || chargement} className="btn-primaire w-full py-3 text-base">
+            {/* Action principale, toujours visible */}
+            <div className="sticky bottom-[68px] z-10 mt-auto border-t border-ligne bg-white px-5 py-4 md:bottom-0">
+              <button onClick={optimiser} disabled={!peutOptimiser || chargement} className="btn-primaire w-full py-3.5 text-base">
                 {chargement ? <Spinner /> : <Wand2 className="h-5 w-5" />}
-                {chargement ? 'Optimisation…' : 'Optimiser ma tournée'}
+                {chargement ? 'Optimisation en cours…' : 'Optimiser la tournée'}
               </button>
               {!peutOptimiser && (
-                <p className="text-center text-xs text-slate-400">
-                  Ajoutez un départ et au moins une destination (minimum 2 points).
-                </p>
+                <p className="aide mt-2 text-center">Ajoutez un départ et au moins une livraison.</p>
               )}
-              <div className="flex gap-2">
-                <button onClick={chargerExemple} className="btn-secondaire flex-1">
-                  <Sparkles className="h-4 w-4" /> Charger un exemple
-                </button>
-                {nbPoints > 0 && (
-                  <button onClick={toutEffacer} className="btn-fantome" aria-label="Tout effacer">
-                    <RotateCcw className="h-4 w-4" /> Effacer
-                  </button>
-                )}
-              </div>
             </div>
           </>
         ) : (
           <>
+            <div className="flex items-start justify-between gap-4 px-5 pb-1 pt-6">
+              <div>
+                <h1 className="font-titre text-2xl font-bold tracking-tight">Tournée optimisée</h1>
+                <p className="mt-1 text-encre/60">
+                  {resultat.source === 'osrm' ? 'Calculée sur les routes réelles.' : 'Estimée à vol d’oiseau.'}
+                </p>
+              </div>
+              <button onClick={reinitialiserResultat} className="btn-secondaire shrink-0 px-3 py-2 text-sm">
+                <Pencil className="h-4 w-4" /> Modifier
+              </button>
+            </div>
             {resultat.livreurs && resultat.livreurs.length > 1 ? (
               <>
                 <ResultCard resultat={resultat} boucle={!arriveeDistincte} />
@@ -429,10 +467,9 @@ export function Optimize() {
                 actions={<ExportActions resultat={resultat} boucle={!arriveeDistincte} nom={nomTournee} />}
               />
             )}
-            {/* Enregistrement */}
-            <section className="carte p-4">
-              <label htmlFor="nom-tournee" className="etiquette mb-2">
-                Enregistrer cette tournée
+            <section className={SECTION}>
+              <label htmlFor="nom-tournee" className="mb-2 block font-titre text-lg font-semibold">
+                Enregistrer dans l’historique
               </label>
               <div className="flex gap-2">
                 <input
@@ -441,35 +478,16 @@ export function Optimize() {
                   placeholder="Ex. : Livraisons du matin"
                   value={nomTournee}
                   onChange={(e) => setNomTournee(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && sauvegarder()}
                   maxLength={120}
                 />
-                <button onClick={sauvegarder} disabled={sauvegarde} className="btn-primaire shrink-0">
-                  {sauvegarde ? <Spinner /> : <Save className="h-4 w-4" />}
+                <button onClick={sauvegarder} disabled={sauvegarde} className="btn-encre shrink-0" aria-label="Enregistrer la tournée">
+                  {sauvegarde ? <Spinner className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                  <span className="hidden sm:inline">Enregistrer</span>
                 </button>
               </div>
             </section>
-            <button onClick={reinitialiserResultat} className="btn-secondaire w-full">
-              <RotateCcw className="h-4 w-4" /> Modifier la tournée
-            </button>
           </>
-        )}
-      </div>
-
-      {/* Carte */}
-      <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
-        <MapView
-          marqueurs={marqueurs}
-          trace={trace}
-          traceInitial={traceInitial}
-          traces={traces}
-          onClickCarte={resultat ? undefined : clicCarte}
-        />
-        {marqueurs.length === 0 && (
-          <div className="pointer-events-none absolute inset-x-0 top-4 z-[500] flex justify-center px-4">
-            <div className="pointer-events-auto rounded-xl bg-white/95 px-4 py-2 text-sm text-slate-600 shadow-carte dark:bg-nuit-600/95 dark:text-slate-300">
-              Cliquez sur la carte pour placer votre point de départ.
-            </div>
-          </div>
         )}
       </div>
     </div>

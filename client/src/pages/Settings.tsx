@@ -2,9 +2,9 @@
  * Settings — profil utilisateur / entreprise et préférences d'optimisation.
  */
 import { useEffect, useState } from 'react';
-import { Save, User, Building2, MapPin } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { api, ApiError, type Profil } from '../lib/api';
-import { Skeleton, Spinner } from '../components/ui';
+import { Skeleton, Spinner, SECTION, EnTetePage } from '../components/ui';
 import { useToast } from '../components/Toast';
 import { CarteApplication } from '../components/Pwa';
 
@@ -43,74 +43,61 @@ export function Settings() {
     }
   };
 
+  const champ = (id: 'nomUtilisateur' | 'nomEntreprise' | 'ville', libelle: string, aide: string, placeholder: string) => (
+    <div>
+      <label htmlFor={id} className="etiquette mb-1.5">{libelle}</label>
+      <input id={id} className="champ" value={profil?.[id] ?? ''} onChange={(e) => maj(id, e.target.value)} placeholder={placeholder} />
+      <p className="aide mt-1">{aide}</p>
+    </div>
+  );
+
   return (
-    <div className="mx-auto max-w-2xl p-4 md:p-8">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Paramètres</h1>
-      <p className="text-slate-500 dark:text-slate-400">Gérez votre profil et vos préférences.</p>
+    <div className="mx-auto max-w-2xl px-4 py-6 md:px-10 md:py-10">
+      <EnTetePage titre="Paramètres" aide="Votre entreprise, le calcul des distances et l’application sur cet appareil." />
 
       {!profil ? (
-        <div className="mt-6 flex flex-col gap-3">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
-        </div>
+        <Skeleton className="mt-8 h-72" />
       ) : (
-        <div className="mt-6 flex flex-col gap-5">
-          <section className="carte p-5">
-            <h2 className="mb-4 font-semibold text-slate-800 dark:text-white">Profil</h2>
+        <div className="feuille mt-8">
+          <section className={SECTION}>
+            <h2 className="mb-4 text-lg font-semibold">Profil</h2>
             <div className="flex flex-col gap-4">
-              <div>
-                <label htmlFor="nom" className="etiquette mb-1.5 flex items-center gap-2">
-                  <User className="h-4 w-4 text-electrique" /> Nom
-                </label>
-                <input id="nom" className="champ" value={profil.nomUtilisateur ?? ''} onChange={(e) => maj('nomUtilisateur', e.target.value)} placeholder="Votre nom" />
-              </div>
-              <div>
-                <label htmlFor="entreprise" className="etiquette mb-1.5 flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-electrique" /> Entreprise
-                </label>
-                <input id="entreprise" className="champ" value={profil.nomEntreprise ?? ''} onChange={(e) => maj('nomEntreprise', e.target.value)} placeholder="Nom de l’entreprise" />
-              </div>
-              <div>
-                <label htmlFor="ville" className="etiquette mb-1.5 flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-electrique" /> Ville
-                </label>
-                <input id="ville" className="champ" value={profil.ville ?? ''} onChange={(e) => maj('ville', e.target.value)} placeholder="Ex. : Cotonou" />
-              </div>
+              {champ('nomEntreprise', 'Entreprise', 'Affiché en tête des feuilles de route envoyées aux livreurs.', 'Ex. : Boutique Akpakpa')}
+              {champ('nomUtilisateur', 'Votre nom', 'Pour vous reconnaître si plusieurs personnes utilisent l’appareil.', 'Ex. : Aïcha')}
+              {champ('ville', 'Ville', 'Ville où vous livrez le plus souvent.', 'Ex. : Cotonou')}
             </div>
           </section>
 
-          <section className="carte p-5">
-            <h2 className="mb-4 font-semibold text-slate-800 dark:text-white">Préférences d’optimisation</h2>
+          <section className={SECTION}>
+            <h2 className="mb-4 text-lg font-semibold">Calcul des distances</h2>
             <label className="flex cursor-pointer items-start justify-between gap-4">
               <span>
-                <span className="font-medium text-slate-800 dark:text-white">Utiliser les distances routières (OSRM)</span>
-                <span className="mt-0.5 block text-sm text-slate-500 dark:text-slate-400">
-                  Recommandé. Si le service est indisponible, l’application bascule automatiquement sur une estimation à vol d’oiseau.
+                <span className="font-semibold">Utiliser les routes réelles</span>
+                <span className="aide mt-0.5 block max-w-md text-sm">
+                  Recommandé. Si le service d’itinéraire ne répond pas, RouteBénin calcule à vol d’oiseau.
                 </span>
               </span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={profil.prefererOsrm}
+                aria-label="Utiliser les routes réelles"
                 onClick={() => maj('prefererOsrm', !profil.prefererOsrm)}
-                className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  profil.prefererOsrm ? 'bg-electrique' : 'bg-slate-300 dark:bg-white/20'
-                }`}
+                className={`relative mt-1 h-7 w-12 shrink-0 rounded-full transition-colors ${profil.prefererOsrm ? 'bg-encre' : 'bg-ligne'}`}
               >
-                <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                    profil.prefererOsrm ? 'translate-x-5' : 'translate-x-0.5'
-                  }`}
-                />
+                <span className={`absolute left-0 top-1 h-5 w-5 rounded-full transition-transform ${profil.prefererOsrm ? 'translate-x-6 bg-zem' : 'translate-x-1 bg-white'}`} />
               </button>
             </label>
           </section>
 
           <CarteApplication />
 
-          <button onClick={enregistrer} disabled={enregistrement} className="btn-primaire self-start">
-            {enregistrement ? <Spinner /> : <Save className="h-5 w-5" />}
-            Enregistrer
-          </button>
+          <div className="flex justify-end border-t border-ligne px-5 py-4">
+            <button onClick={enregistrer} disabled={enregistrement} className="btn-primaire">
+              {enregistrement ? <Spinner /> : <Save className="h-5 w-5" />}
+              Enregistrer les paramètres
+            </button>
+          </div>
         </div>
       )}
     </div>

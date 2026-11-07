@@ -1,48 +1,53 @@
 /** @type {import('tailwindcss').Config} */
+// Identité RouteBénin : l'encre indigo (texte, navigation) et le jaune des
+// chemises de zémidjans (action principale, arrêts de la tournée).
 export default {
-  // Thème clair uniquement (fond blanc garanti) : le mode sombre ne s'active
-  // jamais automatiquement. Les classes `dark:` restent inertes.
   darkMode: 'class',
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        // Encre (bleu nuit) : texte principal + bloc d'accent fort (le gain).
-        nuit: {
-          DEFAULT: '#0A1A2F',
-          900: '#07131F',
-          600: '#0F2947',
-          500: '#16365C',
+        encre: {
+          DEFAULT: '#171B3F',
+          700: '#22274F',
+          600: '#2F3563',
         },
-        // Cobalt : actions principales, tracé d'itinéraire, liens.
-        electrique: {
-          DEFAULT: '#1A56DB',
-          600: '#1347B5',
-          400: '#7AA0F5',
-          50: '#EEF3FF',
+        zem: {
+          DEFAULT: '#FFC414',
+          600: '#EBAD00',
+          100: '#FFF3C4',
+          50: '#FFFAE6',
         },
-        // Émeraude : gains et résultats positifs.
-        succes: {
-          DEFAULT: '#0E9F6E',
-          50: '#E6F6EF',
-        },
-        alerte: '#E02424',
-        attention: '#D97706',
-        // Filet hairline pour délimiter sans ombre.
-        ligne: '#E6E8EC',
-        brume: '#F7F8FA',
+        sol: '#F1F2EE',
+        ligne: '#DCDED8',
+        gain: { DEFAULT: '#0A7D55', 50: '#E3F3EC' },
+        alerte: { DEFAULT: '#C8372D', 50: '#FBEAE8' },
+        attention: { DEFAULT: '#9A5B00', 50: '#FDF1DC' },
+        whatsapp: { DEFAULT: '#128C4B', 600: '#0F7A41' },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Barlow', 'system-ui', 'sans-serif'],
+        titre: ['"Barlow Semi Condensed"', 'Barlow', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        // Échelle typographique (base 16 px, rapport ~1,2)
+        xs: ['0.8125rem', { lineHeight: '1.15rem' }],
+        sm: ['0.875rem', { lineHeight: '1.3rem' }],
+        base: ['1rem', { lineHeight: '1.5rem' }],
+        lg: ['1.1875rem', { lineHeight: '1.6rem' }],
+        xl: ['1.5rem', { lineHeight: '1.9rem' }],
+        '2xl': ['2rem', { lineHeight: '2.3rem' }],
+        '3xl': ['2.75rem', { lineHeight: '1' }],
       },
       boxShadow: {
-        // Ombres discrètes, réservées aux éléments en relief (menus, modale).
-        carte: '0 1px 2px rgba(10,26,47,0.04)',
-        pop: '0 10px 30px -10px rgba(10,26,47,0.18)',
+        pop: '0 12px 32px -12px rgba(23,27,63,0.28), 0 2px 6px -2px rgba(23,27,63,0.12)',
+        panneau: '1px 0 0 #DCDED8',
       },
       borderRadius: {
+        DEFAULT: '0.375rem',
+        md: '0.5rem',
+        lg: '0.625rem',
         xl: '0.875rem',
-        '2xl': '1.125rem',
       },
     },
   },

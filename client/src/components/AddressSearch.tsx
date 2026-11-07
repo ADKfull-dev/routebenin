@@ -105,7 +105,7 @@ export function AddressSearch({ onSelectionner, placeholder = 'Rechercher une ad
   return (
     <div className="relative" ref={conteneur}>
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-nuit/35" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-encre/40" />
         <input
           type="text"
           className="champ pl-9"
@@ -119,31 +119,31 @@ export function AddressSearch({ onSelectionner, placeholder = 'Rechercher une ad
           autoComplete="off"
         />
         {chargement && (
-          <Spinner className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-electrique" />
+          <Spinner className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-encre/50" />
         )}
       </div>
 
       {erreur && <p className="mt-1 text-xs text-alerte">{erreur}</p>}
 
       {ouvert && resultats.length > 0 && (
-        <ul id={listeId} className="carte absolute z-30 mt-1 max-h-72 w-full overflow-auto p-1 shadow-pop" role="listbox">
+        <ul id={listeId} className="absolute z-[650] mt-1 max-h-72 w-full overflow-auto rounded-md border border-ligne bg-white p-1 shadow-pop" role="listbox">
           {resultats.map((r, i) => (
             <li key={`${cle(r.lat, r.lng)}-${i}`}>
               <button
                 type="button"
                 onClick={() => choisir(r)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm hover:bg-brume"
+                className="flex w-full items-center gap-2.5 rounded px-3 py-2.5 text-left text-[0.9375rem] hover:bg-sol"
                 role="option"
                 aria-selected="false"
               >
                 {r.local ? (
-                  <Navigation2 className="h-4 w-4 shrink-0 text-electrique" />
+                  <Navigation2 className="h-4 w-4 shrink-0 text-encre" />
                 ) : (
-                  <MapPin className="h-4 w-4 shrink-0 text-nuit/40" />
+                  <MapPin className="h-4 w-4 shrink-0 text-encre/40" />
                 )}
-                <span className="flex-1 truncate text-nuit">{r.label}</span>
+                <span className="flex-1 truncate">{r.label}</span>
                 {r.local && (
-                  <span className="shrink-0 rounded-full bg-electrique/10 px-2 py-0.5 text-[11px] font-medium text-electrique">
+                  <span className="shrink-0 rounded bg-zem-100 px-1.5 py-0.5 text-xs font-semibold text-encre">
                     Quartier
                   </span>
                 )}

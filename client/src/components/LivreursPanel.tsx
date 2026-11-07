@@ -4,7 +4,7 @@
  * Cliquer sur un livreur le met en évidence sur la carte.
  */
 import { useEffect, useState } from 'react';
-import { ChevronDown, MessageCircle, Truck } from 'lucide-react';
+import { ChevronDown, MessageCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import type { ResultatOptimisation } from '../types';
 import { couleurLivreur, encreSur } from '../lib/couleurs';
@@ -12,6 +12,8 @@ import { formatDistance, formatDuree } from '../lib/format';
 import { libelleCourt, lienWhatsApp, texteFeuille } from '../lib/feuilleRoute';
 import { charge, COUT_ARRET_M, COUT_ARRET_S } from '../lib/vrp';
 import { ExportActions } from './ExportActions';
+import { Etape, Itineraire } from './Itineraire';
+import { SECTION } from './ui';
 
 interface Props {
   resultat: ResultatOptimisation;
@@ -43,93 +45,91 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
   );
   const chargeMax = Math.max(...charges, 1);
   return (
-    <section className="carte p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold text-nuit">
-          <Truck className="h-4 w-4 text-electrique" /> {livreurs.length} livreurs
-          {resultat.critereLivreurs && (
-            <span className="font-normal text-nuit/45">
-              · {resultat.critereLivreurs === 'arrets' ? 'même nombre d’arrêts' : 'charges équilibrées'}
-            </span>
-          )}
-        </p>
+    <section className={SECTION}>
+      <div className="mb-1 flex items-baseline justify-between gap-3">
+        <h2 className="text-lg font-semibold">{livreurs.length} livreurs</h2>
         {livreurActif !== null && (
-          <button type="button" onClick={() => onSelectionner(null)} className="text-xs text-electrique hover:underline">
-            Tout afficher
+          <button type="button" onClick={() => onSelectionner(null)} className="lien text-sm">
+            Voir tous les livreurs
           </button>
         )}
       </div>
-      <ul className="flex flex-col gap-2">
+      <p className="aide mb-3">
+        {resultat.critereLivreurs === 'arrets'
+          ? 'Même nombre d’arrêts pour chacun.'
+          : 'Charges équilibrées : temps de route + 5 min par livraison.'}{' '}
+        Touchez un livreur pour voir son trajet.
+      </p>
+      <ul className="flex flex-col divide-y divide-ligne rounded-md border border-ligne">
         {livreurs.map((l, i) => {
           const actif = livreurActif === i;
           const couleur = couleurLivreur(i);
           return (
-            <li key={i} className={`rounded-xl border p-3 transition ${actif ? 'border-electrique bg-electrique-50/40' : 'border-ligne'}`}>
-              <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => onSelectionner(actif ? null : i)}
-                aria-expanded={actif}
-                className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              >
-                <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ background: couleur }} aria-hidden />
-                <span className="flex-1">
-                  <span className="block text-sm font-semibold text-nuit">Livreur {i + 1}</span>
-                  <span className="chiffre block text-xs text-nuit/55">
-                    {l.nombreDestinations} arrêt{l.nombreDestinations > 1 ? 's' : ''} · {formatDistance(l.distanceOptimisee)}
-                    {l.dureeSecondes !== null
-                      ? ` · ${formatDuree(l.dureeSecondes)} de route + ${formatDuree(COUT_ARRET_S * l.nombreDestinations)} sur place`
-                      : ''}
-                  </span>
+            <li key={i} className={actif ? 'bg-zem-50' : ''}>
+              <div className="flex items-center gap-3 p-3">
+                <button
+                  type="button"
+                  onClick={() => onSelectionner(actif ? null : i)}
+                  aria-expanded={actif}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                >
                   <span
-                    className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-brume"
-                    title="Charge de travail estimée : temps de route + 5 min par livraison"
-                    aria-label={`Charge relative : ${Math.round((charges[i] / chargeMax) * 100)} %`}
+                    className="chiffre flex h-8 w-8 shrink-0 items-center justify-center rounded-md font-titre text-sm font-bold"
+                    style={{ background: couleur, color: encreSur(couleur) }}
+                    aria-hidden
                   >
-                    <span
-                      className="block h-full rounded-full"
-                      style={{ width: `${(charges[i] / chargeMax) * 100}%`, background: couleur }}
-                    />
+                    {i + 1}
                   </span>
-                </span>
-                <ChevronDown className={`h-4 w-4 shrink-0 text-nuit/40 transition ${actif ? 'rotate-180' : ''}`} />
-              </button>
-              <a
-                href={lienWhatsApp(texteFeuille({ resultat: l, boucle: true, nom: nomLivreur(i), entreprise }))}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#128C4B] px-2.5 text-xs font-semibold text-white hover:bg-[#0f7a41]"
-                aria-label={`Envoyer la tournée du livreur ${i + 1} sur WhatsApp`}
-                title="Envoyer sur WhatsApp"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span className="hidden sm:inline">WhatsApp</span>
-              </a>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="font-semibold">Livreur {i + 1}</span>
+                      <span className="chiffre text-sm text-encre/60" title="Temps de route + 5 min par livraison">
+                        {l.dureeSecondes !== null
+                          ? `${formatDuree(l.dureeSecondes + COUT_ARRET_S * l.nombreDestinations)} au total`
+                          : formatDistance(l.distanceOptimisee)}
+                      </span>
+                    </span>
+                    <span className="chiffre block text-xs text-encre/55">
+                      {l.nombreDestinations} arrêt{l.nombreDestinations > 1 ? 's' : ''}, {formatDistance(l.distanceOptimisee)}
+                      {l.dureeSecondes !== null ? `, ${formatDuree(l.dureeSecondes)} de route` : ''}
+                    </span>
+                    <span
+                      className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-sol"
+                      title="Charge de travail estimée : temps de route + 5 min par livraison"
+                      aria-label={`Charge relative : ${Math.round((charges[i] / chargeMax) * 100)} %`}
+                    >
+                      <span className="block h-full rounded-full" style={{ width: `${(charges[i] / chargeMax) * 100}%`, background: couleur }} />
+                    </span>
+                  </span>
+                  <ChevronDown className={`h-4 w-4 shrink-0 text-encre/40 transition-transform ${actif ? 'rotate-180' : ''}`} />
+                </button>
+                <a
+                  href={lienWhatsApp(texteFeuille({ resultat: l, boucle: true, nom: nomLivreur(i), entreprise }))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-whatsapp h-9 shrink-0 px-2.5 text-sm"
+                  aria-label={`Envoyer la tournée du livreur ${i + 1} sur WhatsApp`}
+                  title="Envoyer sur WhatsApp"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </a>
               </div>
               {actif && (
-                <div className="mt-3 flex flex-col gap-3">
-                  <ol className="flex flex-col gap-1.5 text-sm">
+                <div className="flex flex-col gap-3 px-3 pb-3">
+                  <Itineraire>
+                    <Etape type="depart" premier>
+                      <p className="text-sm text-encre/60">Départ</p>
+                    </Etape>
                     {l.etapes.slice(1).map((e, idx) => (
-                      <li key={`${e.arret.id}-${idx}`} className="flex items-center gap-2">
-                        <span
-                          className="chiffre flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
-                          style={{ background: couleur, color: encreSur(couleur) }}
-                        >
-                          {idx + 1}
-                        </span>
-                        <span className="truncate text-nuit/80" title={e.arret.label}>
-                          {libelleCourt(e.arret.label)}
-                        </span>
-                      </li>
+                      <Etape key={`${e.arret.id}-${idx}`} type="etape" numero={idx + 1} couleur={couleur}>
+                        <p className="truncate text-[0.9375rem]" title={e.arret.label}>{libelleCourt(e.arret.label)}</p>
+                      </Etape>
                     ))}
-                    <li className="pl-7 text-xs text-nuit/45">puis retour au départ</li>
-                  </ol>
-                  <ExportActions
-                    resultat={l}
-                    boucle
-                    nom={nomLivreur(i)}
-                    compact
-                  />
+                    <Etape type="retour" dernier>
+                      <p className="text-sm text-encre/60">Retour au départ</p>
+                    </Etape>
+                  </Itineraire>
+                  <ExportActions resultat={l} boucle nom={nomLivreur(i)} compact />
                 </div>
               )}
             </li>

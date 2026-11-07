@@ -9,68 +9,108 @@ body,
 }
 
 body {
-  @apply bg-white text-nuit antialiased;
-  font-family: 'Inter', system-ui, sans-serif;
-  /* Interlignage et rendu soignés pour un rendu premium. */
+  @apply bg-sol text-encre antialiased;
+  font-family: 'Barlow', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Chiffres alignés (données de logistique : km, %, durées). */
+h1,
+h2,
+h3 {
+  @apply font-titre;
+}
+
+/* Chiffres alignés (km, %, durées). */
 .chiffre {
   font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1;
+}
+
+:focus-visible {
+  outline: 2px solid #171b3f;
+  outline-offset: 2px;
 }
 
 @layer components {
-  /* Surface standard : blanc + filet fin. L'ombre est réservée aux éléments
-     réellement en relief (menus déroulants, modale), via shadow-pop. */
-  .carte {
-    @apply rounded-2xl bg-white border border-ligne;
+  /* Feuille : surface blanche à filet fin, sans ombre. */
+  .feuille {
+    @apply rounded-lg border border-ligne bg-white;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
-      text-sm font-semibold transition-all duration-150 focus:outline-none
-      focus-visible:ring-2 focus-visible:ring-electrique/40 focus-visible:ring-offset-2
-      disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5
+      text-[0.9375rem] font-semibold transition-colors duration-150
+      disabled:cursor-not-allowed disabled:opacity-40;
   }
 
+  /* Action principale : jaune zém, texte encre (lisible en plein soleil). */
   .btn-primaire {
-    @apply btn bg-electrique text-white hover:bg-electrique-600
-      shadow-[0_1px_2px_rgba(26,86,219,0.25)];
+    @apply btn bg-zem text-encre hover:bg-zem-600;
+  }
+
+  .btn-encre {
+    @apply btn bg-encre text-white hover:bg-encre-700;
   }
 
   .btn-secondaire {
-    @apply btn bg-white text-nuit border border-ligne hover:bg-brume;
+    @apply btn border border-ligne bg-white text-encre hover:border-encre/40;
   }
 
   .btn-fantome {
-    @apply btn text-nuit/70 hover:bg-brume hover:text-nuit;
+    @apply btn text-encre/70 hover:bg-sol hover:text-encre;
+  }
+
+  .btn-whatsapp {
+    @apply btn bg-whatsapp text-white hover:bg-whatsapp-600;
   }
 
   .champ {
-    @apply w-full rounded-xl border border-ligne bg-white px-3.5 py-2.5 text-sm
-      text-nuit placeholder-nuit/35
-      focus:border-electrique focus:outline-none focus:ring-2 focus:ring-electrique/15;
+    @apply w-full rounded-md border border-ligne bg-white px-3.5 py-2.5 text-[0.9375rem]
+      text-encre placeholder-encre/40 transition-colors
+      focus:border-encre focus:outline-none;
   }
 
   .etiquette {
-    @apply block text-sm font-medium text-nuit;
+    @apply block text-sm font-semibold text-encre;
+  }
+
+  .aide {
+    @apply text-xs text-encre/55;
+  }
+
+  .lien {
+    @apply font-semibold text-encre underline decoration-zem decoration-2 underline-offset-4 hover:decoration-encre;
   }
 }
 
-/* Carte Leaflet : remplit son conteneur, coins arrondis, filet fin. */
 .leaflet-container {
   height: 100%;
   width: 100%;
-  border-radius: 1rem;
   font-family: inherit;
-  background: #eef1f4;
+  background: #e8e9e4;
   z-index: 0;
+}
+
+/* Fond de carte désaturé : seules les tuiles sont filtrées (pas les tracés ni
+   les marqueurs), pour que l'itinéraire ressorte sur une carte calme. */
+.leaflet-tile-pane {
+  filter: saturate(0.18) brightness(1.03) contrast(0.9);
+}
+
+.leaflet-control-zoom a {
+  color: #171b3f !important;
 }
 
 .marqueur-numero {
   background: transparent;
   border: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
