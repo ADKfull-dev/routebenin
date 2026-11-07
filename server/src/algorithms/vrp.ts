@@ -223,7 +223,8 @@ function ameliorerEntreTournees(
  * @param k        nombre de livreurs (borné au nombre de destinations)
  * @param critere  « equilibre » (défaut) ou « arrets » (voir en-tête)
  * @param options.durees  matrice des durées (s) : si fournie, « equilibre »
- *                        équilibre le TEMPS de travail (conduite + 5 min/arrêt)
+ *                        équilibre le TEMPS de travail (conduite + temps par arrêt)
+ * @param options.secondesParArret  temps passé à chaque livraison (défaut 5 min)
  */
 export function repartirTournees(
   D: number[][],
@@ -231,7 +232,7 @@ export function repartirTournees(
   depot: number,
   k: number,
   critere: CritereVrp = 'equilibre',
-  options: { durees?: number[][] | null } = {},
+  options: { durees?: number[][] | null; secondesParArret?: number } = {},
 ): ResultatVrp {
   const n = D.length - 1; // destinations
   if (n < 1) return { tournees: [[depot]], distances: [0], total: 0, max: 0 };
@@ -250,7 +251,7 @@ export function repartirTournees(
     } else {
       // « Charges équilibrées » : en temps si les durées sont connues, sinon en distance.
       const C = options.durees ?? D;
-      const coutArret = options.durees ? COUT_ARRET_S : COUT_ARRET_M;
+      const coutArret = options.durees ? (options.secondesParArret ?? COUT_ARRET_S) : COUT_ARRET_M;
       // Recherche locale depuis deux points de départ (balayage dédié, et la
       // solution à nombre d'arrêts égal) ; on garde la meilleure.
       const cout = (t: number[][]) =>

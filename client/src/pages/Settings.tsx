@@ -33,6 +33,7 @@ export function Settings() {
         nomEntreprise: profil.nomEntreprise,
         ville: profil.ville,
         prefererOsrm: profil.prefererOsrm,
+        minutesParLivraison: profil.minutesParLivraison,
       });
       setProfil(mis);
       toast.succes('Paramètres enregistrés.');
@@ -69,7 +70,27 @@ export function Settings() {
           </section>
 
           <section className={SECTION}>
-            <h2 className="mb-4 text-lg font-semibold">Calcul des distances</h2>
+            <h2 className="mb-4 text-lg font-semibold">Calcul des tournées</h2>
+            <div className="mb-5">
+              <label htmlFor="minutes" className="etiquette mb-1.5">Temps par livraison</label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="minutes"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={120}
+                  className="champ chiffre w-24"
+                  value={profil.minutesParLivraison}
+                  onChange={(e) => maj('minutesParLivraison', Math.max(0, Math.min(120, Math.round(Number(e.target.value) || 0))))}
+                />
+                <span className="text-encre/70">minutes</span>
+              </div>
+              <p className="aide mt-1 max-w-md">
+                Temps passé chez chaque client (se garer, remettre le colis, encaisser). Il s’ajoute au temps de route
+                pour la durée totale, et sert à équilibrer le travail entre livreurs.
+              </p>
+            </div>
             <label className="flex cursor-pointer items-start justify-between gap-4">
               <span>
                 <span className="font-semibold">Utiliser les routes réelles</span>

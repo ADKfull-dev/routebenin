@@ -10,7 +10,8 @@ import type { ResultatOptimisation } from '../types';
 import { couleurLivreur, encreSur } from '../lib/couleurs';
 import { formatDistance, formatDuree } from '../lib/format';
 import { libelleCourt, lienWhatsApp, texteFeuille } from '../lib/feuilleRoute';
-import { charge, COUT_ARRET_M, COUT_ARRET_S } from '../lib/vrp';
+import { charge, COUT_ARRET_M } from '../lib/vrp';
+import { dureeTournee, minutesParLivraison } from '../lib/duree';
 import { ExportActions } from './ExportActions';
 import { Etape, Itineraire } from './Itineraire';
 import { SECTION } from './ui';
@@ -38,9 +39,10 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
   const nomLivreur = (i: number) => `${nom?.trim() || 'Tournée'} — Livreur ${i + 1}`;
   // Charge de travail : temps de conduite + 5 min par livraison (ou, sans
   // durées, distance + 2 km par arrêt) — le même critère que la répartition.
+  const minutes = minutesParLivraison(resultat);
   const charges = livreurs.map((l) =>
     l.dureeSecondes !== null
-      ? charge(l.dureeSecondes, l.nombreDestinations, COUT_ARRET_S)
+      ? charge(l.dureeSecondes, l.nombreDestinations, minutes * 60)
       : charge(l.distanceOptimisee, l.nombreDestinations, COUT_ARRET_M),
   );
   const chargeMax = Math.max(...charges, 1);
@@ -57,7 +59,7 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
       <p className="aide mb-3">
         {resultat.critereLivreurs === 'arrets'
           ? 'Même nombre d’arrêts pour chacun.'
-          : 'Charges équilibrées : temps de route + 5 min par livraison.'}{' '}
+          : `Charges équilibrées : temps de route + ${minutes} min par livraison.`}{' '}
         Touchez un livreur pour voir son trajet.
       </p>
       <ul className="flex flex-col divide-y divide-ligne rounded-md border border-ligne">
@@ -83,10 +85,8 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="font-semibold">Livreur {i + 1}</span>
-                      <span className="chiffre text-sm text-encre/60" title="Temps de route + 5 min par livraison">
-                        {l.dureeSecondes !== null
-                          ? `${formatDuree(l.dureeSecondes + COUT_ARRET_S * l.nombreDestinations)} au total`
-                          : formatDistance(l.distanceOptimisee)}
+                      <span className="chiffre text-sm font-semibold" title={`Temps de route + ${minutes} min par livraison`}>
+                        {l.dureeSecondes !== null ? formatDuree(dureeTournee(l, minutes)!.total) : formatDistance(l.distanceOptimisee)}
                       </span>
                     </span>
                     <span className="chiffre block text-xs text-encre/55">
@@ -95,7 +95,7 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
                     </span>
                     <span
                       className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-sol"
-                      title="Charge de travail estimée : temps de route + 5 min par livraison"
+                      title={`Charge de travail estimée : temps de route + ${minutes} min par livraison`}
                       aria-label={`Charge relative : ${Math.round((charges[i] / chargeMax) * 100)} %`}
                     >
                       <span className="block h-full rounded-full" style={{ width: `${(charges[i] / chargeMax) * 100}%`, background: couleur }} />
@@ -104,7 +104,7 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
                   <ChevronDown className={`h-4 w-4 shrink-0 text-encre/40 transition-transform ${actif ? 'rotate-180' : ''}`} />
                 </button>
                 <a
-                  href={lienWhatsApp(texteFeuille({ resultat: l, boucle: true, nom: nomLivreur(i), entreprise }))}
+                  href={lienWhatsApp(texteFeuille({ resultat: { ...l, minutesParLivraison: minutes }, boucle: true, nom: nomLivreur(i), entreprise }))}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-whatsapp h-9 shrink-0 px-2.5 text-sm"
@@ -129,7 +129,7 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
                       <p className="text-sm text-encre/60">Retour au départ</p>
                     </Etape>
                   </Itineraire>
-                  <ExportActions resultat={l} boucle nom={nomLivreur(i)} compact />
+                  <ExportActions resultat={{ ...l, minutesParLivraison: minutes }} boucle nom={nomLivreur(i)} compact />
                 </div>
               )}
             </li>

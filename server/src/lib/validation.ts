@@ -18,6 +18,7 @@ export const optimizeSchema = z.object({
   prefererOsrm: z.boolean().optional().default(true),
   nombreLivreurs: z.number().int().min(1).max(6).optional().default(1),
   critereLivreurs: z.enum(['equilibre', 'arrets']).optional().default('equilibre'),
+  minutesParLivraison: z.number().int().min(0).max(120).optional().default(5),
 });
 
 const resultatBaseSchema = z.object({
@@ -36,6 +37,7 @@ const resultatBaseSchema = z.object({
 const resultatSchema = resultatBaseSchema.extend({
   livreurs: z.array(resultatBaseSchema).max(6).nullable().optional(),
   critereLivreurs: z.enum(['equilibre', 'arrets']).nullable().optional(),
+  minutesParLivraison: z.number().int().min(0).max(120).nullable().optional(),
 });
 
 export const sauvegardeSchema = z.object({
@@ -51,6 +53,7 @@ export const profilSchema = z.object({
   nomEntreprise: z.string().max(120).nullable().optional(),
   ville: z.string().max(120).nullable().optional(),
   prefererOsrm: z.boolean().optional(),
+  minutesParLivraison: z.number().int().min(0, 'Le temps par livraison ne peut pas être négatif.').max(120, 'Au plus 120 minutes par livraison.').optional(),
 });
 
 export type OptimizeInput = z.infer<typeof optimizeSchema>;

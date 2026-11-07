@@ -16,6 +16,8 @@ export interface EntreeOptimisation {
   /** Nombre de livreurs (1 à 6 ; 1 = tournée unique). */
   nombreLivreurs?: number;
   critereLivreurs?: 'equilibre' | 'arrets';
+  /** Temps passé à chaque livraison, en minutes (défaut : 5). */
+  minutesParLivraison?: number;
 }
 
 export interface StatsDashboard {
@@ -50,6 +52,8 @@ export interface Profil {
   nomEntreprise: string | null;
   ville: string | null;
   prefererOsrm: boolean;
+  /** Temps passé à chaque livraison, en minutes. */
+  minutesParLivraison: number;
 }
 
 export interface SauvegardePayload {

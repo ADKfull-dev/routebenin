@@ -41,7 +41,7 @@ function ecrireTournees(t: TourneeSauvegardee[]): void {
   }
 }
 function lireProfil(): Profil {
-  const defaut: Profil = { id: 'profil', nomUtilisateur: null, nomEntreprise: null, ville: null, prefererOsrm: true };
+  const defaut: Profil = { id: 'profil', nomUtilisateur: null, nomEntreprise: null, ville: null, prefererOsrm: true, minutesParLivraison: 5 };
   try {
     const p = localStorage.getItem(CLE_PROFIL);
     return p ? { ...defaut, ...(JSON.parse(p) as Partial<Profil>) } : defaut;
@@ -92,8 +92,12 @@ async function optimiserMultiLivreurs(
   source: 'osrm' | 'haversine',
   k: number,
   critere: CritereVrp,
+  secondesParArret: number,
 ): Promise<ResultatOptimisation> {
-  const vrp = repartirTournees(distances, noeuds.map((a) => ({ lat: a.lat, lng: a.lng })), 0, k, critere, { durees: durations });
+  const vrp = repartirTournees(distances, noeuds.map((a) => ({ lat: a.lat, lng: a.lng })), 0, k, critere, {
+    durees: durations,
+    secondesParArret,
+  });
   const distanceInitiale = repartitionNaive(distances, 0, k);
   const geometries = await Promise.all(
     vrp.tournees.map((t) =>
@@ -141,6 +145,118 @@ async function optimiserMultiLivreurs(
   };
 }
 
+/* ---------- Tournée unique ou multi-livreurs ---------- */
+async function calculerTournee(entree: EntreeOptimisation, secondesParArret: number): Promise<ResultatOptimisation> {
+  const { depart, destinations, arrivee, prefererOsrm = true } = entree;
+  if (!destinations || destinations.length < 1) {
+    throw new ApiError('Ajoutez au moins une destination à votre tournée.');
+  }
+
+  const arriveeDistincte = arrivee !== null && !memeLieu(arrivee, depart);
+  const noeuds: Arret[] = arriveeDistincte ? [depart, ...destinations, arrivee] : [depart, ...destinations];
+  const coords: Coordonnee[] = noeuds.map((a) => ({ lat: a.lat, lng: a.lng }));
+
+  // Matrice : OSRM si possible, sinon Haversine.
+  let distances: number[][];
+  let durations: number[][] | null = null;
+  let source: 'osrm' | 'haversine' = 'haversine';
+  if (prefererOsrm) {
+    try {
+      const t = await osrmTable(coords);
+      distances = t.distances;
+      durations = t.durations;
+      source = 'osrm';
+    } catch {
+      distances = matriceHaversine(coords);
+    }
+  } else {
+    distances = matriceHaversine(coords);
+  }
+
+  const nombreLivreurs = Math.min(entree.nombreLivreurs ?? 1, destinations.length);
+  if (nombreLivreurs > 1) {
+    if (arriveeDistincte) {
+      throw new ApiError('En mode multi-livreurs, chaque livreur revient au point de départ : retirez l’arrivée.');
+    }
+    return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs, entree.critereLivreurs ?? 'equilibre', secondesParArret);
+  }
+
+  const n = noeuds.length;
+  let ordreOptimise: number[];
+  let distanceOptimisee: number;
+  let distanceInitiale: number;
+  let noeudsItineraire: Arret[];
+
+  if (!arriveeDistincte) {
+    const ordreSaisie = noeuds.map((_, i) => i);
+    distanceInitiale = computeTourDistance(distances, ordreSaisie);
+    const res = solveTour(distances, 0);
+    ordreOptimise = res.order;
+    distanceOptimisee = res.totalDistance;
+    noeudsItineraire = [...ordreOptimise.map((i) => noeuds[i]), noeuds[ordreOptimise[0]]];
+  } else {
+    const depIdx = 0;
+    const finIdx = n - 1;
+    const fictif = n;
+    let somme = 0;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) somme += distances[i][j];
+    const BIG = somme + 1;
+    const aug = Array.from({ length: n + 1 }, () => new Array<number>(n + 1).fill(0));
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) aug[i][j] = distances[i][j];
+    for (let k = 0; k <= n; k++) {
+      const cout = k === depIdx || k === finIdx ? 0 : BIG;
+      aug[fictif][k] = cout;
+      aug[k][fictif] = cout;
+    }
+    const res = solveTour(aug, depIdx);
+    const cycle = res.order;
+    const p = cycle.indexOf(fictif);
+    const tourne = [...cycle.slice(p), ...cycle.slice(0, p)];
+    let chemin = tourne.slice(1);
+    if (chemin[0] !== depIdx) chemin = chemin.slice().reverse();
+    ordreOptimise = chemin;
+    distanceOptimisee = distanceChemin(distances, chemin);
+    distanceInitiale = distanceChemin(distances, noeuds.map((_, i) => i));
+    noeudsItineraire = ordreOptimise.map((i) => noeuds[i]);
+  }
+
+  let dureeSecondes: number | null = null;
+  if (durations) {
+    dureeSecondes = 0;
+    for (let i = 0; i < ordreOptimise.length - 1; i++) {
+      dureeSecondes += durations[ordreOptimise[i]][ordreOptimise[i + 1]];
+    }
+    if (!arriveeDistincte) {
+      dureeSecondes += durations[ordreOptimise[ordreOptimise.length - 1]][ordreOptimise[0]];
+    }
+  }
+
+  const gainMetres = Math.max(0, distanceInitiale - distanceOptimisee);
+  const gainPourcent = distanceInitiale > 0 ? (gainMetres / distanceInitiale) * 100 : 0;
+
+  // Tracés routiers : ordre optimisé + ordre de saisie (comparaison avant/après).
+  const noeudsInitiaux = arriveeDistincte ? noeuds : [...noeuds, depart];
+  const tracer = (pts: Arret[]) =>
+    osrmRoute(pts.map((a) => ({ lat: a.lat, lng: a.lng }))).catch(() => null);
+  const [geometrie, geometrieInitiale] =
+    source === 'osrm'
+      ? await Promise.all([tracer(noeudsItineraire), tracer(noeudsInitiaux)])
+      : [null, null];
+
+  return {
+    etapes: ordreOptimise.map((i, position) => ({ position, arret: noeuds[i] })),
+    distanceInitiale,
+    distanceOptimisee,
+    gainMetres,
+    gainPourcent,
+    dureeSecondes,
+    nombreDestinations: destinations.length,
+    source,
+    geometrie,
+    geometrieInitiale,
+  };
+}
+
 /* ---------- Implémentation ---------- */
 export const localApi: ApiClient = {
   async geocoder(q: string): Promise<ResultatGeocodage[]> {
@@ -158,114 +274,9 @@ export const localApi: ApiClient = {
   },
 
   async optimiser(entree: EntreeOptimisation): Promise<ResultatOptimisation> {
-    const { depart, destinations, arrivee, prefererOsrm = true } = entree;
-    if (!destinations || destinations.length < 1) {
-      throw new ApiError('Ajoutez au moins une destination à votre tournée.');
-    }
-
-    const arriveeDistincte = arrivee !== null && !memeLieu(arrivee, depart);
-    const noeuds: Arret[] = arriveeDistincte ? [depart, ...destinations, arrivee] : [depart, ...destinations];
-    const coords: Coordonnee[] = noeuds.map((a) => ({ lat: a.lat, lng: a.lng }));
-
-    // Matrice : OSRM si possible, sinon Haversine.
-    let distances: number[][];
-    let durations: number[][] | null = null;
-    let source: 'osrm' | 'haversine' = 'haversine';
-    if (prefererOsrm) {
-      try {
-        const t = await osrmTable(coords);
-        distances = t.distances;
-        durations = t.durations;
-        source = 'osrm';
-      } catch {
-        distances = matriceHaversine(coords);
-      }
-    } else {
-      distances = matriceHaversine(coords);
-    }
-
-    const nombreLivreurs = Math.min(entree.nombreLivreurs ?? 1, destinations.length);
-    if (nombreLivreurs > 1) {
-      if (arriveeDistincte) {
-        throw new ApiError('En mode multi-livreurs, chaque livreur revient au point de départ : retirez l’arrivée.');
-      }
-      return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs, entree.critereLivreurs ?? 'equilibre');
-    }
-
-    const n = noeuds.length;
-    let ordreOptimise: number[];
-    let distanceOptimisee: number;
-    let distanceInitiale: number;
-    let noeudsItineraire: Arret[];
-
-    if (!arriveeDistincte) {
-      const ordreSaisie = noeuds.map((_, i) => i);
-      distanceInitiale = computeTourDistance(distances, ordreSaisie);
-      const res = solveTour(distances, 0);
-      ordreOptimise = res.order;
-      distanceOptimisee = res.totalDistance;
-      noeudsItineraire = [...ordreOptimise.map((i) => noeuds[i]), noeuds[ordreOptimise[0]]];
-    } else {
-      const depIdx = 0;
-      const finIdx = n - 1;
-      const fictif = n;
-      let somme = 0;
-      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) somme += distances[i][j];
-      const BIG = somme + 1;
-      const aug = Array.from({ length: n + 1 }, () => new Array<number>(n + 1).fill(0));
-      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) aug[i][j] = distances[i][j];
-      for (let k = 0; k <= n; k++) {
-        const cout = k === depIdx || k === finIdx ? 0 : BIG;
-        aug[fictif][k] = cout;
-        aug[k][fictif] = cout;
-      }
-      const res = solveTour(aug, depIdx);
-      const cycle = res.order;
-      const p = cycle.indexOf(fictif);
-      const tourne = [...cycle.slice(p), ...cycle.slice(0, p)];
-      let chemin = tourne.slice(1);
-      if (chemin[0] !== depIdx) chemin = chemin.slice().reverse();
-      ordreOptimise = chemin;
-      distanceOptimisee = distanceChemin(distances, chemin);
-      distanceInitiale = distanceChemin(distances, noeuds.map((_, i) => i));
-      noeudsItineraire = ordreOptimise.map((i) => noeuds[i]);
-    }
-
-    let dureeSecondes: number | null = null;
-    if (durations) {
-      dureeSecondes = 0;
-      for (let i = 0; i < ordreOptimise.length - 1; i++) {
-        dureeSecondes += durations[ordreOptimise[i]][ordreOptimise[i + 1]];
-      }
-      if (!arriveeDistincte) {
-        dureeSecondes += durations[ordreOptimise[ordreOptimise.length - 1]][ordreOptimise[0]];
-      }
-    }
-
-    const gainMetres = Math.max(0, distanceInitiale - distanceOptimisee);
-    const gainPourcent = distanceInitiale > 0 ? (gainMetres / distanceInitiale) * 100 : 0;
-
-    // Tracés routiers : ordre optimisé + ordre de saisie (comparaison avant/après).
-    const noeudsInitiaux = arriveeDistincte ? noeuds : [...noeuds, depart];
-    const tracer = (pts: Arret[]) =>
-      osrmRoute(pts.map((a) => ({ lat: a.lat, lng: a.lng }))).catch(() => null);
-    const [geometrie, geometrieInitiale] =
-      source === 'osrm'
-        ? await Promise.all([tracer(noeudsItineraire), tracer(noeudsInitiaux)])
-        : [null, null];
-
-    return {
-      etapes: ordreOptimise.map((i, position) => ({ position, arret: noeuds[i] })),
-      distanceInitiale,
-      distanceOptimisee,
-      gainMetres,
-      gainPourcent,
-      dureeSecondes,
-      nombreDestinations: destinations.length,
-      source,
-      geometrie,
-      geometrieInitiale,
-    };
+    const minutesParLivraison = entree.minutesParLivraison ?? 5;
+    const r = await calculerTournee(entree, minutesParLivraison * 60);
+    return { ...r, minutesParLivraison };
   },
 
   async stats(): Promise<StatsDashboard> {

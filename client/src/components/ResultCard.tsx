@@ -10,6 +10,7 @@ import type { ResultatOptimisation } from '../types';
 import { formatDistance, formatDuree, formatPourcent } from '../lib/format';
 import { libelleCourt } from '../lib/feuilleRoute';
 import { Etape, Itineraire } from './Itineraire';
+import { dureeJournee } from '../lib/duree';
 
 import { SECTION } from './ui';
 
@@ -40,7 +41,8 @@ export function ResultCard({
   /** Bloc d'envoi au livreur, placé juste sous les chiffres clés. */
   actions?: ReactNode;
 }) {
-  const { distanceInitiale, distanceOptimisee, gainMetres, gainPourcent, dureeSecondes } = resultat;
+  const { distanceInitiale, distanceOptimisee, gainMetres, gainPourcent } = resultat;
+  const duree = dureeJournee(resultat);
   // En dessous de ~4 destinations, tous les ordres donnent la même distance :
   // on l'explique au lieu d'afficher « −0 % ».
   const dejaOptimale = gainPourcent < 0.5;
@@ -80,16 +82,24 @@ export function ResultCard({
           </>
         )}
 
-        <dl className="mt-5 grid grid-cols-2 divide-x divide-ligne rounded-md border border-ligne">
+        <dl className="mt-5 grid grid-cols-[1fr_auto] divide-x divide-ligne rounded-md border border-ligne">
           <div className="px-4 py-3">
-            <dt className="aide">{multi ? 'Route, plus longue tournée' : 'Durée de route'}</dt>
-            <dd className="chiffre mt-0.5 font-titre text-lg font-semibold">{formatDuree(dureeSecondes)}</dd>
+            <dt className="aide">{multi ? 'Durée de la journée (livreur le plus long)' : 'Durée totale estimée'}</dt>
+            <dd className="chiffre mt-0.5 font-titre text-lg font-semibold">{duree ? formatDuree(duree.total) : '—'}</dd>
+            {duree && (
+              <dd className="chiffre aide mt-0.5">
+                {formatDuree(duree.route)} de route + {formatDuree(duree.surPlace)} sur place ({duree.minutesParLivraison} min par livraison)
+              </dd>
+            )}
           </div>
           <div className="px-4 py-3">
             <dt className="aide">Livraisons</dt>
             <dd className="chiffre mt-0.5 font-titre text-lg font-semibold">{resultat.nombreDestinations}</dd>
           </div>
         </dl>
+        {duree && (
+          <p className="aide mt-2">Hors embouteillages. Réglez le temps par livraison dans les Paramètres.</p>
+        )}
 
         {resultat.source === 'haversine' && (
           <p className="mt-3 flex items-start gap-2 rounded-md bg-attention-50 px-3 py-2.5 text-sm text-attention">

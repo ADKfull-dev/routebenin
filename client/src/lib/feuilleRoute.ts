@@ -6,6 +6,7 @@
  */
 import type { Arret, ResultatOptimisation } from '../types';
 import { formatDistance, formatDuree, formatPourcent } from './format';
+import { dureeJournee } from './duree';
 
 export interface InfosFeuille {
   resultat: ResultatOptimisation;
@@ -70,11 +71,12 @@ export function libelleCourt(label: string): string {
 export function texteFeuille(infos: InfosFeuille): string {
   const { resultat, boucle, nom, entreprise } = infos;
   const pts = parcours(infos);
+  const duree = dureeJournee(resultat);
   const l: string[] = [];
   l.push(`🚚 *${nom?.trim() || 'Feuille de route'}*${entreprise ? ` — ${entreprise}` : ''}`);
   l.push(
     `📏 ${formatDistance(resultat.distanceOptimisee)}` +
-      (resultat.dureeSecondes !== null ? ` · ⏱️ ~${formatDuree(resultat.dureeSecondes)}` : '') +
+      (duree ? ` · ⏱️ ~${formatDuree(duree.total)} (dont ${formatDuree(duree.surPlace)} sur place)` : '') +
       ` · ${resultat.nombreDestinations} livraison${resultat.nombreDestinations > 1 ? 's' : ''}`,
   );
   if (resultat.gainPourcent >= 0.5) {
@@ -107,6 +109,7 @@ const esc = (s: string) =>
 export function htmlFeuille(infos: InfosFeuille): string {
   const { resultat, boucle, nom, entreprise } = infos;
   const pts = parcours(infos);
+  const duree = dureeJournee(resultat);
   const date = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const lignes = pts
     .map((a, i) => {
@@ -145,6 +148,7 @@ export function htmlFeuille(infos: InfosFeuille): string {
   .kpi { border: 1px solid #E6E8EC; border-radius: 8px; padding: 8px 10px; }
   .kpi b { display: block; font-size: 16px; margin-top: 2px; }
   .kpi span { color: #5b6574; font-size: 11px; }
+  .kpi small { display: block; color: #5b6574; font-size: 10px; margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; font-size: 11px; color: #5b6574; font-weight: 600; border-bottom: 1px solid #171B3F; padding: 6px 6px; }
   td { border-bottom: 1px solid #E6E8EC; padding: 8px 6px; vertical-align: top; }
@@ -179,7 +183,7 @@ export function htmlFeuille(infos: InfosFeuille): string {
   <div class="kpis">
     <div class="kpi"><span>Livraisons</span><b>${resultat.nombreDestinations}</b></div>
     <div class="kpi"><span>Distance</span><b>${formatDistance(resultat.distanceOptimisee)}</b></div>
-    <div class="kpi"><span>Durée estimée</span><b>${formatDuree(resultat.dureeSecondes)}</b></div>
+    <div class="kpi"><span>Durée totale estimée</span><b>${duree ? formatDuree(duree.total) : '—'}</b>${duree ? `<small>${formatDuree(duree.route)} de route + ${formatDuree(duree.surPlace)} sur place</small>` : ''}</div>
     <div class="kpi"><span>Économie</span><b>${resultat.gainPourcent >= 0.5 ? `−${formatPourcent(resultat.gainPourcent)}` : '—'}</b></div>
   </div>
   <table>

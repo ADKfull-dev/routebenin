@@ -50,4 +50,5 @@ model Profil {
   nomEntreprise String?
   ville         String?
   prefererOsrm  Boolean @default(true)
+  minutesParLivraison Int @default(5)
 }

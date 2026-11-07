@@ -119,4 +119,17 @@ describe('repartirTournees', () => {
       expect(avecDurees.total).toBeGreaterThan(1000);
     }
   });
+
+  it('temps par livraison réglable : très long, il impose des nombres d’arrêts égaux', () => {
+    for (const graine of [1, 2, 3]) {
+      const P = points(17, graine);
+      const D = matriceHaversine(P);
+      const T = D.map((l) => l.map((d) => d / (25 / 3.6)));
+      // 2 h par livraison : le temps sur place écrase le temps de route.
+      const r = repartirTournees(D, P, 0, 4, 'equilibre', { durees: T, secondesParArret: 7200 });
+      const arrets = r.tournees.map((t) => t.length - 1);
+      expect(Math.max(...arrets) - Math.min(...arrets)).toBeLessThanOrEqual(1);
+      expect(arrets.reduce((a, b) => a + b, 0)).toBe(16);
+    }
+  });
 });

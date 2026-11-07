@@ -35,6 +35,8 @@ export interface EntreeOptimisation {
   nombreLivreurs?: number;
   /** Critère de répartition multi-livreurs (défaut : charges équilibrées). */
   critereLivreurs?: CritereVrp;
+  /** Temps passé à chaque livraison, en minutes (défaut : 5). */
+  minutesParLivraison?: number;
 }
 
 export interface ResultatOptimisation {
@@ -53,6 +55,8 @@ export interface ResultatOptimisation {
   livreurs?: ResultatOptimisation[] | null;
   /** Critère utilisé pour la répartition multi-livreurs. */
   critereLivreurs?: CritereVrp | null;
+  /** Temps sur place par livraison utilisé pour la durée totale (minutes). */
+  minutesParLivraison?: number | null;
 }
 
 export class EntreeInvalideError extends Error {
@@ -88,8 +92,15 @@ async function obtenirMatrice(
   return { distances: matriceHaversine(points), durations: null, source: 'haversine' };
 }
 
-export async function optimiserTournee(
+export async function optimiserTournee(entree: EntreeOptimisation): Promise<ResultatOptimisation> {
+  const minutesParLivraison = entree.minutesParLivraison ?? 5;
+  const r = await calculerTournee(entree, minutesParLivraison * 60);
+  return { ...r, minutesParLivraison };
+}
+
+async function calculerTournee(
   entree: EntreeOptimisation,
+  secondesParArret: number,
 ): Promise<ResultatOptimisation> {
   const { depart, destinations, arrivee, prefererOsrm } = entree;
 
@@ -114,7 +125,7 @@ export async function optimiserTournee(
         'En mode multi-livreurs, chaque livreur revient au point de départ : retirez l’arrivée.',
       );
     }
-    return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs, entree.critereLivreurs ?? 'equilibre');
+    return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs, entree.critereLivreurs ?? 'equilibre', secondesParArret);
   }
 
   const n = noeuds.length;
@@ -239,9 +250,10 @@ async function optimiserMultiLivreurs(
   source: SourceDistance,
   k: number,
   critere: CritereVrp,
+  secondesParArret: number,
 ): Promise<ResultatOptimisation> {
   const coords = noeuds.map((a) => ({ lat: a.lat, lng: a.lng }));
-  const vrp = repartirTournees(distances, coords, 0, k, critere, { durees: durations });
+  const vrp = repartirTournees(distances, coords, 0, k, critere, { durees: durations, secondesParArret });
   const distanceInitiale = repartitionNaive(distances, 0, k);
 
   const geometries = await Promise.all(

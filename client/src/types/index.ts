@@ -56,6 +56,8 @@ export interface ResultatOptimisation {
   livreurs?: ResultatOptimisation[] | null;
   /** Critère de répartition : charges équilibrées ou même nombre d'arrêts. */
   critereLivreurs?: CritereLivreurs | null;
+  /** Temps sur place par livraison utilisé pour la durée totale (minutes ; 5 si absent). */
+  minutesParLivraison?: number | null;
 }
 
 export type CritereLivreurs = 'equilibre' | 'arrets';

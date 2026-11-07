@@ -20,6 +20,7 @@ import type { Arret, CritereLivreurs, ResultatOptimisation } from '../types';
 import { DEPART_DEMO, DESTINATIONS_DEMO } from '../lib/demoCotonou';
 import { traceInitial as calculerTraceInitial, traceOptimise, carteMultiLivreurs } from '../lib/traces';
 import { NOMBRE_MAX_LIVREURS } from '../lib/couleurs';
+import { MINUTES_PAR_LIVRAISON_DEFAUT } from '../lib/duree';
 import type { TraceCarte } from '../components/MapView';
 
 const memeLieu = (a: Arret, b: Arret) =>
@@ -41,6 +42,7 @@ export function Optimize() {
   const [nomTournee, setNomTournee] = useState('');
   const [sauvegarde, setSauvegarde] = useState(false);
   const [prefererOsrm, setPrefererOsrm] = useState(true);
+  const [minutesParLivraison, setMinutesParLivraison] = useState(MINUTES_PAR_LIVRAISON_DEFAUT);
   const panneauRef = useRef<HTMLDivElement>(null);
 
   // À l'affichage d'un résultat, revenir en haut du panneau : sinon il reste
@@ -58,7 +60,11 @@ export function Optimize() {
     let annule = false;
     api
       .obtenirProfil()
-      .then((p) => !annule && setPrefererOsrm(p.prefererOsrm))
+      .then((p) => {
+        if (annule) return;
+        setPrefererOsrm(p.prefererOsrm);
+        setMinutesParLivraison(p.minutesParLivraison ?? MINUTES_PAR_LIVRAISON_DEFAUT);
+      })
       .catch(() => undefined);
     return () => {
       annule = true;
@@ -203,6 +209,7 @@ export function Optimize() {
         prefererOsrm,
         nombreLivreurs: Math.min(nbLivreurs, destinations.length),
         critereLivreurs: critere,
+        minutesParLivraison,
       });
       setResultat(r);
       if (r.source === 'haversine') {
@@ -414,7 +421,7 @@ export function Optimize() {
                   </div>
                   <p className="aide mt-2">
                     {critere === 'equilibre'
-                      ? 'Équilibre le temps de travail (route + 5 min par livraison) : celui qui va loin a moins d’arrêts.'
+                      ? `Équilibre le temps de travail (route + ${minutesParLivraison} min par livraison) : celui qui va loin a moins d’arrêts.`
                       : 'Chaque livreur reçoit le même nombre d’adresses, au plus court.'}
                   </p>
                 </div>
