@@ -28,7 +28,8 @@ pour d'autres villes et pays.
 - **Envoi au livreur** : message WhatsApp prêt à partager, copie du texte, feuille de route imprimable/PDF (cases « Livré », observations, signature) et liens de navigation Google Maps.
 - **Paramètres** : profil utilisateur/entreprise, préférence distances routières.
 - **Mode hors-ligne (PWA)** : installable sur l'écran d'accueil du téléphone ; l'application, l'exemple de démo, les zones de carte déjà consultées et les derniers itinéraires calculés restent disponibles sans réseau (voir plus bas).
-- **Responsive** (ordinateur, tablette, mobile) + **mode sombre** automatique.
+- **Responsive** (ordinateur, tablette, mobile) : sur téléphone, la carte passe en haut et le bouton « Optimiser » reste toujours visible.
+- **Identité visuelle** : encre indigo + jaune des chemises de zémidjans, police Barlow (inspirée de la signalisation routière), carte désaturée pour que le trajet ressorte, et la tournée dessinée comme un itinéraire (mêmes pastilles numérotées dans la liste et sur la carte).
 
 ---
 
