@@ -65,7 +65,7 @@ export function Settings() {
             <div className="flex flex-col gap-4">
               {champ('nomEntreprise', 'Entreprise', 'Affiché en tête des feuilles de route envoyées aux livreurs.', 'Ex. : Boutique Akpakpa')}
               {champ('nomUtilisateur', 'Votre nom', 'Pour vous reconnaître si plusieurs personnes utilisent l’appareil.', 'Ex. : Aïcha')}
-              {champ('ville', 'Ville', 'Ville où vous livrez le plus souvent.', 'Ex. : Cotonou')}
+              {champ('ville', 'Ville', 'Ville où vous livrez le plus souvent : la carte s’ouvre dessus.', 'Ex. : Parakou')}
             </div>
           </section>
 

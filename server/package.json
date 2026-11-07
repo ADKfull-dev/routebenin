@@ -11,6 +11,7 @@
     "test": "vitest run",
     "bench": "tsx src/bench/benchmark.ts",
     "pack-demo": "tsx src/tools/packDemo.ts",
+    "lieux-benin": "tsx src/tools/lieuxBenin.ts",
     "test:watch": "vitest",
     "db:setup": "prisma generate && prisma db push"
   },

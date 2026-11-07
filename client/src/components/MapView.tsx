@@ -42,6 +42,8 @@ interface Props {
   /** Plusieurs tracés colorés (multi-livreurs) : remplace `trace`. */
   traces?: TraceCarte[] | null;
   onClickCarte?: (lat: number, lng: number) => void;
+  /** Centre de la carte quand elle est vide (ville du profil). Cotonou par défaut. */
+  centre?: [number, number] | null;
 }
 
 const CENTRE_COTONOU: [number, number] = [6.37, 2.42];
@@ -102,6 +104,15 @@ function AjusterVue({ marqueurs }: { marqueurs: MarqueurCarte[] }) {
   return null;
 }
 
+/** Carte vide : centre sur la ville choisie (sans écraser une vue avec des points). */
+function CentrerSiVide({ centre, vide }: { centre: [number, number] | null | undefined; vide: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    if (vide && centre) map.setView(centre, 12);
+  }, [map, centre, vide]);
+  return null;
+}
+
 /** Capte les clics sur la carte pour ajouter un point. */
 function GestionClic({ onClickCarte }: { onClickCarte?: (lat: number, lng: number) => void }) {
   useMapEvents({
@@ -147,7 +158,7 @@ function useTraceProgressif(ligne: [number, number][], actif: boolean, jeton: nu
   return Math.min(visibles, ligne.length);
 }
 
-export function MapView({ marqueurs, trace, traceInitial, traces, onClickCarte }: Props) {
+export function MapView({ marqueurs, trace, traceInitial, traces, onClickCarte, centre }: Props) {
   const multi = !!traces && traces.length > 0;
   // Repli : si pas de tracé OSRM, relier les marqueurs par des lignes droites.
   const traceDroite = useMemo<[number, number][]>(
@@ -210,6 +221,7 @@ export function MapView({ marqueurs, trace, traceInitial, traces, onClickCarte }
           <Marker key={m.id} position={[m.lat, m.lng]} icon={iconeMarqueur(m)} title={m.label} />
         ))}
         <AjusterVue marqueurs={marqueurs} />
+        <CentrerSiVide centre={centre} vide={marqueurs.length === 0} />
         <GestionClic onClickCarte={onClickCarte} />
       </MapContainer>
 

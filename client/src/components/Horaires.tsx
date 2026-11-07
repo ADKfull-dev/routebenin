@@ -17,7 +17,7 @@ export function SyntheseHoraires({ resultat }: { resultat: AvecHoraires }) {
       <p className="chiffre">
         Départ à <strong className="font-semibold">{formatHeure(h.heureDepart)}</strong>,{' '}
         {multi ? 'dernier retour' : 'fin de tournée'} vers <strong className="font-semibold">{formatHeure(h.heureFin)}</strong>
-        {h.estime && <span className="text-encre/55"> (estimé à 25 km/h)</span>}.
+        {h.estime && <span className="text-encre/55"> (estimation sans service routier)</span>}.
       </p>
       {h.avecFenetres &&
         (h.retards === 0 ? (

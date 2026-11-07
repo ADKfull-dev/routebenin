@@ -175,3 +175,19 @@ describe('repartirAvecContraintes', () => {
     expect(performance.now() - debut).toBeLessThan(5000);
   });
 });
+
+describe('vitesseRepli (estimation sans OSRM)', () => {
+  it('25 km/h en ville, 65 km/h entre villes, durée croissante avec la distance', async () => {
+    const { vitesseRepli } = await import('./contraintes');
+    expect(vitesseRepli(1000) * 3.6).toBeCloseTo(25);
+    expect(vitesseRepli(100_000) * 3.6).toBeCloseTo(65);
+    let precedente = 0;
+    for (let d = 100; d <= 500_000; d += 500) {
+      const duree = d / vitesseRepli(d);
+      expect(duree).toBeGreaterThan(precedente);
+      precedente = duree;
+    }
+    // Cotonou–Parakou (~415 km) : environ 6 h 20, et non 17 h.
+    expect(415_000 / vitesseRepli(415_000) / 3600).toBeLessThan(7);
+  });
+});

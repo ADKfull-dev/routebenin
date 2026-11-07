@@ -17,7 +17,8 @@ import { libelleCourt } from '../lib/feuilleRoute';
 import { useToast } from '../components/Toast';
 import { api, ApiError } from '../lib/api';
 import type { Arret, CritereLivreurs, ResultatOptimisation } from '../types';
-import { DEPART_DEMO, DESTINATIONS_DEMO } from '../lib/demoCotonou';
+import { DEPART_DEMO, DESTINATIONS_DEMO, DEPART_ZOU, DESTINATIONS_ZOU } from '../lib/demoCotonou';
+import { chercherLieux } from '../lib/lieuxBenin';
 import { traceInitial as calculerTraceInitial, traceOptimise, carteMultiLivreurs } from '../lib/traces';
 import { NOMBRE_MAX_LIVREURS } from '../lib/couleurs';
 import { MINUTES_PAR_LIVRAISON_DEFAUT } from '../lib/duree';
@@ -64,6 +65,7 @@ export function Optimize() {
   const [sauvegarde, setSauvegarde] = useState(false);
   const [prefererOsrm, setPrefererOsrm] = useState(true);
   const [minutesParLivraison, setMinutesParLivraison] = useState(MINUTES_PAR_LIVRAISON_DEFAUT);
+  const [centreVille, setCentreVille] = useState<[number, number] | null>(null);
   const panneauRef = useRef<HTMLDivElement>(null);
 
   // À l'affichage d'un résultat, revenir en haut du panneau : sinon il reste
@@ -85,6 +87,10 @@ export function Optimize() {
         if (annule) return;
         setPrefererOsrm(p.prefererOsrm);
         setMinutesParLivraison(p.minutesParLivraison ?? MINUTES_PAR_LIVRAISON_DEFAUT);
+        // Carte centrée sur la ville du profil (Paramètres), où qu'elle soit au Bénin.
+        if (p.ville?.trim()) {
+          chercherLieux(p.ville, { limite: 1 }).then(([l]) => !annule && l && setCentreVille([l.lat, l.lng]));
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -204,19 +210,24 @@ export function Optimize() {
     );
   };
 
-  const chargerExemple = () => {
-    setDepart(DEPART_DEMO);
-    setDestinations(DESTINATIONS_DEMO);
+  const chargerExemple = (exemple: 'cotonou' | 'zou' = 'cotonou') => {
+    const zou = exemple === 'zou';
+    setDepart(zou ? DEPART_ZOU : DEPART_DEMO);
+    setDestinations(zou ? DESTINATIONS_ZOU : DESTINATIONS_DEMO);
     setArrivee(null);
     reinitialiserResultat();
-    toast.info('Exemple chargé : 14 livraisons à Cotonou et environs.');
+    toast.info(
+      zou
+        ? 'Exemple chargé : 10 livraisons entre le Zou et les Collines, au départ de Bohicon.'
+        : 'Exemple chargé : 14 livraisons à Cotonou et environs.',
+    );
   };
 
   // Lien « Essayer l'exemple » du tableau de bord : /optimiser?exemple=1
   const [params, setParams] = useSearchParams();
   useEffect(() => {
     if (params.get('exemple') === null) return;
-    chargerExemple();
+    chargerExemple(params.get('exemple') === 'zou' ? 'zou' : 'cotonou');
     setParams({}, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -283,8 +294,12 @@ export function Optimize() {
 
   const actionsSaisie = (
     <div className="flex items-center gap-4 text-sm">
-      <button type="button" onClick={chargerExemple} className="lien">
-        Charger l’exemple de Cotonou
+      <span className="text-encre/60">Exemple :</span>
+      <button type="button" onClick={() => chargerExemple('cotonou')} className="lien">
+        Cotonou
+      </button>
+      <button type="button" onClick={() => chargerExemple('zou')} className="lien">
+        Zou et Collines
       </button>
       {nbPoints > 0 && (
         <button type="button" onClick={toutEffacer} className="font-semibold text-encre/60 hover:text-alerte">
@@ -304,6 +319,7 @@ export function Optimize() {
           traceInitial={traceInitial}
           traces={traces}
           onClickCarte={resultat ? undefined : clicCarte}
+          centre={centreVille}
         />
         {marqueurs.length === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-4 z-[500] flex justify-center px-4">
@@ -371,7 +387,7 @@ export function Optimize() {
                 />
 
                 <Etape type="ajout" avecChamp pointilleHaut={destinations.length === 0} pointille dernier={nbLivreurs > 1}>
-                  <AddressSearch onSelectionner={ajouterDestination} placeholder="Ajouter une livraison…" />
+                  <AddressSearch onSelectionner={ajouterDestination} placeholder="Ajouter une livraison…" proche={depart} />
                 </Etape>
 
                 {nbLivreurs === 1 && (
@@ -386,7 +402,7 @@ export function Optimize() {
                         </button>
                       </div>
                     ) : (
-                      <AddressSearch onSelectionner={(a) => { setArrivee(a); reinitialiserResultat(); }} placeholder="Arrivée : retour au départ si vide" />
+                      <AddressSearch onSelectionner={(a) => { setArrivee(a); reinitialiserResultat(); }} placeholder="Arrivée : retour au départ si vide" proche={depart} />
                     )}
                   </Etape>
                 )}

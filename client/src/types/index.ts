@@ -32,7 +32,7 @@ export interface Horaires {
   capacite: number | null;
   /** Au moins une livraison a un créneau. */
   avecFenetres: boolean;
-  /** Durées estimées à 25 km/h (pas de durées OSRM). */
+  /** Durées estimées sans OSRM (25 km/h en ville, jusqu’à 65 km/h entre villes). */
   estime: boolean;
 }
 

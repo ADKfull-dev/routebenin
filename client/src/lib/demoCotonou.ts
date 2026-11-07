@@ -46,3 +46,24 @@ export const TOURNEE_DEMO = {
   destinations: DESTINATIONS_DEMO,
   arrivee: null as Arret | null, // retour au départ par défaut
 };
+
+/**
+ * Deuxième exemple, interurbain : tournée au départ de Bohicon dans le Zou et
+ * les Collines (coordonnées du répertoire OpenStreetMap des lieux du Bénin).
+ * Pas de pack pré-calculé : les distances viennent d'OSRM en direct (ou, hors
+ * ligne, de l'estimation à vol d'oiseau).
+ */
+export const DEPART_ZOU: Arret = arret('Bohicon (centre)', 7.18163, 2.06957);
+
+export const DESTINATIONS_ZOU: Arret[] = [
+  arret('Abomey', 7.182, 1.99363),
+  arret('Savalou', 7.92973, 1.9781),
+  arret('Covè', 7.21954, 2.33996),
+  arret('Dassa-Zoumé', 7.78154, 2.18361),
+  arret('Djidja', 7.34478, 1.93426),
+  arret('Glazoué', 7.97322, 2.24069),
+  arret('Za-Kpota', 7.23092, 2.21704),
+  arret('Paouignan', 7.67518, 2.22741),
+  arret('Zogbodomey', 7.0683, 2.11878),
+  arret('Agbangnizoun', 7.07583, 1.97057),
+];

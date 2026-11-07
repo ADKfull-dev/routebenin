@@ -73,7 +73,7 @@ export const QUARTIERS: Quartier[] = [
 ];
 
 /** Normalise : minuscules, sans accents, sans ponctuation superflue. */
-function normaliser(s: string): string {
+export function normaliser(s: string): string {
   return s
     .toLowerCase()
     .normalize('NFD')
@@ -106,7 +106,7 @@ function levenshtein(a: string, b: string): number {
  * Score de pertinence d'un quartier pour une requête (plus bas = plus proche).
  * Tolère accents manquants et fautes de frappe. Renvoie null si trop éloigné.
  */
-function score(requeteNorm: string, nomNorm: string): number | null {
+export function score(requeteNorm: string, nomNorm: string): number | null {
   if (nomNorm.startsWith(requeteNorm)) return 0; // préfixe : meilleur score
   if (nomNorm.includes(requeteNorm)) return 0.5; // sous-chaîne
   // Fautes de frappe : on compare la requête au meilleur mot du nom.
@@ -121,7 +121,7 @@ function score(requeteNorm: string, nomNorm: string): number | null {
 }
 
 /** Recherche floue dans le répertoire local. Renvoie les plus proches d'abord. */
-export function chercherQuartiers(requete: string, limite = 6): ResultatGeocodage[] {
+export function chercherQuartiers(requete: string, limite = 6): (ResultatGeocodage & { approche: boolean })[] {
   const q = normaliser(requete);
   if (q.length < 2) return [];
   const notes: { q: Quartier; s: number }[] = [];
@@ -130,9 +130,11 @@ export function chercherQuartiers(requete: string, limite = 6): ResultatGeocodag
     if (s !== null) notes.push({ q: quartier, s });
   }
   notes.sort((a, b) => a.s - b.s);
-  return notes.slice(0, limite).map(({ q: x }) => ({
+  return notes.slice(0, limite).map(({ q: x, s }) => ({
     label: `${x.nom}, ${x.ville}`,
     lat: x.lat,
     lng: x.lng,
+    // Trouvé seulement en tolérant des fautes (pas de préfixe ni de sous-chaîne).
+    approche: s >= 1,
   }));
 }

@@ -84,11 +84,18 @@ export interface Simulation {
 }
 
 const EPS = 1e-9;
-/** Vitesse moyenne en ville pour estimer des durées sans OSRM (25 km/h). */
-export const VITESSE_REPLI_MS = 25 / 3.6;
+/**
+ * Vitesse moyenne estimée sans OSRM, selon la longueur du trajet : 25 km/h en
+ * ville (moins de 3 km), jusqu'à 65 km/h sur route entre deux villes (40 km et
+ * plus), linéaire entre les deux. La durée reste croissante avec la distance.
+ */
+export function vitesseRepli(metres: number): number {
+  const t = Math.min(1, Math.max(0, (metres - 3000) / 37000));
+  return (25 + 40 * t) / 3.6; // m/s
+}
 
 /** Durées estimées depuis des distances (repli vol d'oiseau). */
-export const dureesDepuisDistances = (D: number[][]) => D.map((l) => l.map((d) => d / VITESSE_REPLI_MS));
+export const dureesDepuisDistances = (D: number[][]) => D.map((l) => l.map((d) => (d > 0 ? d / vitesseRepli(d) : 0)));
 
 /** Vrai si au moins une livraison a une fenêtre. */
 export const aDesFenetres = (c: Contraintes) => c.fenetres.some((f) => f && (f.debut !== null || f.fin !== null));
