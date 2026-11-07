@@ -27,6 +27,7 @@ pour d'autres villes et pays.
 - **Multi-livreurs (1 à 6)** : répartition équilibrée des adresses entre plusieurs livreurs partant du même point, une couleur par livreur.
 - **Envoi au livreur** : message WhatsApp prêt à partager, copie du texte, feuille de route imprimable/PDF (cases « Livré », observations, signature) et liens de navigation Google Maps.
 - **Paramètres** : profil utilisateur/entreprise, préférence distances routières.
+- **Créneaux horaires et capacité** : créneau et nombre de colis par livraison (bouton horloge), heure de départ, colis par livreur. Le résultat donne l'heure de passage prévue à chaque arrêt, l'attente éventuelle, les retards, le chargement de chaque livreur, et propose d'ajouter des livreurs si la capacité ne suffit pas.
 - **Mode hors-ligne (PWA)** : installable sur l'écran d'accueil du téléphone ; l'application, l'exemple de démo, les zones de carte déjà consultées et les derniers itinéraires calculés restent disponibles sans réseau (voir plus bas).
 - **Responsive** (ordinateur, tablette, mobile) : sur téléphone, la carte passe en haut et le bouton « Optimiser » reste toujours visible.
 - **Identité visuelle** : encre indigo + jaune des chemises de zémidjans, police Barlow (inspirée de la signalisation routière), carte désaturée pour que le trajet ressorte, et la tournée dessinée comme un itinéraire (mêmes pastilles numérotées dans la liste et sur la carte).
@@ -54,6 +55,22 @@ Code entièrement maison (aucune bibliothèque d'optimisation externe), dans
      Exemple de Cotonou, 3 livreurs : 73 / 69 / 74 min de travail (écart 5 min)
      contre 73 / 48 / 96 min avec « même nombre d'arrêts » ;
    - **même nombre d'arrêts** : distance totale minimale, ⌈n / K⌉ arrêts max.
+8. **Créneaux horaires et capacité (VRPTW capacitaire)** — `contraintes.ts` :
+   chaque livraison peut avoir un créneau (« entre 10:00 et 12:00 », ou seulement
+   avant / après) et un nombre de colis ; chaque livreur une capacité en colis.
+   - *Simulation* : on roule (durées OSRM, sinon 25 km/h), on **attend** si l'on
+     arrive avant l'ouverture, on compte le **retard** si l'on arrive après la
+     fermeture, puis on passe le temps de livraison sur place.
+   - *Objectif lexicographique* : 1) colis au-delà de la capacité, 2) minutes de
+     retard, 3) plafond d'arrêts (critère « même nombre »), 4) distance ou
+     équilibre. Une tournée à l'heure bat toujours une tournée plus courte en retard.
+   - *Une tournée* : trois solutions initiales (plus courte, tri par heure limite,
+     tri par heure d'ouverture), puis recherche locale Or-opt (segments de 1 à 3
+     arrêts), 2-opt et échanges.
+   - *Plusieurs livreurs* : la répartition classique sert de départ, puis
+     déplacements (meilleure insertion) et échanges entre livreurs, puis
+     réordonnancement de chaque tournée.
+   - Sans créneau ni capacité, le moteur reste celui des points 1 à 7.
 
 Le TSP étant NP-difficile, cette approche offre un excellent compromis
 qualité/vitesse (optimum exact vérifié par force brute sur les petits cas dans les tests).

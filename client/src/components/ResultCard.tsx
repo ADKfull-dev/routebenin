@@ -11,6 +11,8 @@ import { formatDistance, formatDuree, formatPourcent } from '../lib/format';
 import { libelleCourt } from '../lib/feuilleRoute';
 import { Etape, Itineraire } from './Itineraire';
 import { dureeJournee } from '../lib/duree';
+import { HeurePassage, StatutPassage, SyntheseHoraires } from './Horaires';
+import { formatHeure } from '../lib/horaires';
 
 import { SECTION } from './ui';
 
@@ -46,8 +48,11 @@ export function ResultCard({
   // En dessous de ~4 destinations, tous les ordres donnent la même distance :
   // on l'explique au lieu d'afficher « −0 % ».
   const dejaOptimale = gainPourcent < 0.5;
+  const avecFenetres = !!resultat.horaires?.avecFenetres || !!resultat.livreurs?.some((l) => l.horaires?.avecFenetres);
+  const surcout = distanceOptimisee - distanceInitiale;
   const multi = !!resultat.livreurs && resultat.livreurs.length > 1;
   const etapes = resultat.etapes;
+  const h = resultat.horaires ?? null;
 
   return (
     <>
@@ -57,7 +62,13 @@ export function ResultCard({
         </p>
         <p className="chiffre mt-1 font-titre text-3xl font-bold tracking-tight">{formatDistance(distanceOptimisee)}</p>
 
-        {dejaOptimale ? (
+        {dejaOptimale && avecFenetres ? (
+          <p className="mt-3 max-w-prose text-sm leading-relaxed text-encre/70">
+            {surcout > 50
+              ? `Les créneaux horaires imposent cet ordre : ${formatDistance(surcout)} de plus que l’ordre de saisie.`
+              : 'Ordre calculé pour respecter les créneaux horaires.'}
+          </p>
+        ) : dejaOptimale ? (
           <p className="mt-3 max-w-prose text-sm leading-relaxed text-encre/70">
             {resultat.nombreDestinations < 3
               ? 'Avec si peu d’arrêts, un seul trajet est possible. Ajoutez 4 destinations ou plus pour que l’ordre de passage compte.'
@@ -89,6 +100,7 @@ export function ResultCard({
             {duree && (
               <dd className="chiffre aide mt-0.5">
                 {formatDuree(duree.route)} de route + {formatDuree(duree.surPlace)} sur place ({duree.minutesParLivraison} min par livraison)
+                {duree.attente >= 60 ? ` + ${formatDuree(duree.attente)} d’attente` : ''}
               </dd>
             )}
           </div>
@@ -97,6 +109,7 @@ export function ResultCard({
             <dd className="chiffre mt-0.5 font-titre text-lg font-semibold">{resultat.nombreDestinations}</dd>
           </div>
         </dl>
+        <SyntheseHoraires resultat={resultat} />
         {duree && (
           <p className="aide mt-2">Hors embouteillages. Réglez le temps par livraison dans les Paramètres.</p>
         )}
@@ -125,15 +138,30 @@ export function ResultCard({
                   numero={idx}
                   premier={idx === 0}
                   dernier={!boucle && idx === etapes.length - 1}
+                  actions={
+                    h &&
+                    (estDepart ? (
+                      <span className="chiffre pl-2 text-sm font-semibold text-encre/70">{formatHeure(h.heureDepart)}</span>
+                    ) : estArrivee ? (
+                      <span className="chiffre pl-2 text-sm font-semibold text-encre/70">{formatHeure(h.heureFin)}</span>
+                    ) : (
+                      <HeurePassage passage={h.passages[idx - 1]} />
+                    ))
+                  }
                 >
                   <p className="truncate text-[0.9375rem]" title={e.arret.label}>
                     {libelleCourt(e.arret.label)}
                   </p>
+                  {!estDepart && !estArrivee && <StatutPassage arret={e.arret} passage={h?.passages[idx - 1]} />}
                 </Etape>
               );
             })}
             {boucle && etapes.length > 1 && (
-              <Etape type="retour" dernier>
+              <Etape
+                type="retour"
+                dernier
+                actions={h && <span className="chiffre pl-2 text-sm font-semibold text-encre/70">{formatHeure(h.heureFin)}</span>}
+              >
                 <p className="text-sm text-encre/60">Retour au départ</p>
               </Etape>
             )}

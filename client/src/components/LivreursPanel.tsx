@@ -15,6 +15,8 @@ import { dureeTournee, minutesParLivraison } from '../lib/duree';
 import { ExportActions } from './ExportActions';
 import { Etape, Itineraire } from './Itineraire';
 import { SECTION } from './ui';
+import { HeurePassage, StatutPassage } from './Horaires';
+import { formatHeure, minutes as enMinutes } from '../lib/horaires';
 
 interface Props {
   resultat: ResultatOptimisation;
@@ -92,7 +94,17 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
                     <span className="chiffre block text-xs text-encre/55">
                       {l.nombreDestinations} arrêt{l.nombreDestinations > 1 ? 's' : ''}, {formatDistance(l.distanceOptimisee)}
                       {l.dureeSecondes !== null ? `, ${formatDuree(l.dureeSecondes)} de route` : ''}
+                      {l.horaires ? `, retour vers ${formatHeure(l.horaires.heureFin)}` : ''}
+                      {l.horaires?.capacite != null ? `, ${l.horaires.charge}/${l.horaires.capacite} colis` : ''}
                     </span>
+                    {l.horaires && l.horaires.retards > 0 && (
+                      <span className="chiffre block text-xs font-semibold text-alerte">
+                        {l.horaires.retards} hors créneau ({enMinutes(l.horaires.retardTotal)} de retard)
+                      </span>
+                    )}
+                    {l.horaires?.capacite != null && l.horaires.charge > l.horaires.capacite && (
+                      <span className="block text-xs font-semibold text-alerte">Capacité dépassée</span>
+                    )}
                     <span
                       className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-sol"
                       title={`Charge de travail estimée : temps de route + ${minutes} min par livraison`}
@@ -117,15 +129,30 @@ export function LivreursPanel({ resultat, nom, livreurActif, onSelectionner }: P
               {actif && (
                 <div className="flex flex-col gap-3 px-3 pb-3">
                   <Itineraire>
-                    <Etape type="depart" premier>
+                    <Etape
+                      type="depart"
+                      premier
+                      actions={l.horaires && <span className="chiffre pl-2 text-sm font-semibold text-encre/70">{formatHeure(l.horaires.heureDepart)}</span>}
+                    >
                       <p className="text-sm text-encre/60">Départ</p>
                     </Etape>
                     {l.etapes.slice(1).map((e, idx) => (
-                      <Etape key={`${e.arret.id}-${idx}`} type="etape" numero={idx + 1} couleur={couleur}>
+                      <Etape
+                        key={`${e.arret.id}-${idx}`}
+                        type="etape"
+                        numero={idx + 1}
+                        couleur={couleur}
+                        actions={<HeurePassage passage={l.horaires?.passages[idx]} />}
+                      >
                         <p className="truncate text-[0.9375rem]" title={e.arret.label}>{libelleCourt(e.arret.label)}</p>
+                        <StatutPassage arret={e.arret} passage={l.horaires?.passages[idx]} />
                       </Etape>
                     ))}
-                    <Etape type="retour" dernier>
+                    <Etape
+                      type="retour"
+                      dernier
+                      actions={l.horaires && <span className="chiffre pl-2 text-sm font-semibold text-encre/70">{formatHeure(l.horaires.heureFin)}</span>}
+                    >
                       <p className="text-sm text-encre/60">Retour au départ</p>
                     </Etape>
                   </Itineraire>

@@ -21,6 +21,23 @@ import { DEPART_DEMO, DESTINATIONS_DEMO } from '../lib/demoCotonou';
 import { traceInitial as calculerTraceInitial, traceOptimise, carteMultiLivreurs } from '../lib/traces';
 import { NOMBRE_MAX_LIVREURS } from '../lib/couleurs';
 import { MINUTES_PAR_LIVRAISON_DEFAUT } from '../lib/duree';
+
+const CLE_PLANNING = 'routebenin.planning';
+function lirePlanning(): { heureDepart: string; capacite: number | null } {
+  try {
+    const p = JSON.parse(localStorage.getItem(CLE_PLANNING) ?? '{}') as { heureDepart?: string; capacite?: number | null };
+    return { heureDepart: p.heureDepart || '08:00', capacite: p.capacite ?? null };
+  } catch {
+    return { heureDepart: '08:00', capacite: null };
+  }
+}
+function ecrirePlanning(p: { heureDepart: string; capacite: number | null }) {
+  try {
+    localStorage.setItem(CLE_PLANNING, JSON.stringify(p));
+  } catch {
+    /* stockage indisponible : on garde les valeurs pour cette session */
+  }
+}
 import type { TraceCarte } from '../components/MapView';
 
 const memeLieu = (a: Arret, b: Arret) =>
@@ -34,6 +51,10 @@ export function Optimize() {
   const [nbLivreurs, setNbLivreurs] = useState(1);
   const [livreurActif, setLivreurActif] = useState<number | null>(null);
   const [critere, setCritere] = useState<CritereLivreurs>('equilibre');
+  // Heure de départ et capacité : retenues d'une tournée à l'autre sur cet appareil.
+  const [heureDepart, setHeureDepart] = useState(() => lirePlanning().heureDepart);
+  const [capacite, setCapacite] = useState<number | null>(() => lirePlanning().capacite);
+  useEffect(() => ecrirePlanning({ heureDepart, capacite }), [heureDepart, capacite]);
   // En multi-livreurs, chacun revient au départ : l'arrivée est ignorée.
   const arrivee = nbLivreurs > 1 ? null : arriveeSaisie;
 
@@ -133,6 +154,17 @@ export function Optimize() {
     reinitialiserResultat();
   };
 
+  const modifierDestination = (id: string, modif: Partial<Pick<Arret, 'fenetre' | 'colis'>>) => {
+    setDestinations((d) => d.map((x) => (x.id === id ? { ...x, ...modif } : x)));
+    reinitialiserResultat();
+  };
+
+  // Chargement : colis à livrer et nombre minimal de livreurs pour la capacité.
+  const totalColis = destinations.reduce((s, d) => s + (d.colis ?? 1), 0);
+  const livreursNecessaires = capacite ? Math.ceil(totalColis / capacite) : 1;
+  const capaciteInsuffisante = capacite !== null && livreursNecessaires > nbLivreurs;
+  const livreursPossibles = livreursNecessaires <= Math.min(NOMBRE_MAX_LIVREURS, destinations.length);
+
   const supprimerDestination = (id: string) => {
     setDestinations((d) => d.filter((x) => x.id !== id));
     reinitialiserResultat();
@@ -210,6 +242,8 @@ export function Optimize() {
         nombreLivreurs: Math.min(nbLivreurs, destinations.length),
         critereLivreurs: critere,
         minutesParLivraison,
+        heureDepart,
+        capaciteVehicule: capacite,
       });
       setResultat(r);
       if (r.source === 'haversine') {
@@ -305,6 +339,7 @@ export function Optimize() {
                 <Etape
                   type="depart"
                   premier
+                  avecChamp={!depart}
                   pointille={destinations.length === 0}
                   actions={
                     !depart && (
@@ -332,14 +367,15 @@ export function Optimize() {
                   destinations={destinations}
                   onReordonner={(n) => { setDestinations(n); reinitialiserResultat(); }}
                   onSupprimer={supprimerDestination}
+                  onModifier={modifierDestination}
                 />
 
-                <Etape type="ajout" pointilleHaut={destinations.length === 0} pointille dernier={nbLivreurs > 1}>
+                <Etape type="ajout" avecChamp pointilleHaut={destinations.length === 0} pointille dernier={nbLivreurs > 1}>
                   <AddressSearch onSelectionner={ajouterDestination} placeholder="Ajouter une livraison…" />
                 </Etape>
 
                 {nbLivreurs === 1 && (
-                  <Etape type="arrivee" pointilleHaut dernier>
+                  <Etape type="arrivee" avecChamp={!arrivee} pointilleHaut dernier>
                     {arrivee ? (
                       <div className="flex items-center justify-between gap-3">
                         <p className="truncate text-[0.9375rem] font-semibold" title={arrivee.label}>
@@ -358,8 +394,62 @@ export function Optimize() {
               <p className="aide mt-3 pl-10">
                 {destinations.length > 0 && destinations.length < 4
                   ? 'L’ordre de passage compte à partir de 4 livraisons : c’est là que la distance baisse vraiment.'
-                  : 'Vous pouvez aussi toucher la carte pour ajouter un point.'}
+                  : destinations.length === 0
+                    ? 'Vous pouvez aussi toucher la carte pour ajouter un point.'
+                    : 'Touchez l’horloge d’une livraison pour lui donner un créneau ou un nombre de colis.'}
               </p>
+            </section>
+
+            {/* Horaires et chargement (fenêtres horaires, capacité) */}
+            <section className={SECTION}>
+              <h2 className="text-lg font-semibold">Horaires et chargement</h2>
+              <div className="mt-3 grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="heure-depart" className="etiquette mb-1.5">Départ à</label>
+                  <input
+                    id="heure-depart"
+                    type="time"
+                    className="champ chiffre"
+                    value={heureDepart}
+                    onChange={(e) => { setHeureDepart(e.target.value || '08:00'); reinitialiserResultat(); }}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="capacite" className="etiquette mb-1.5">Colis par livreur</label>
+                  <input
+                    id="capacite"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={9999}
+                    placeholder="Sans limite"
+                    className="champ chiffre"
+                    value={capacite ?? ''}
+                    onChange={(e) => {
+                      const v = Math.round(Number(e.target.value));
+                      setCapacite(e.target.value === '' || !(v >= 1) ? null : Math.min(9999, v));
+                      reinitialiserResultat();
+                    }}
+                  />
+                </div>
+              </div>
+              <p className="chiffre aide mt-2">
+                {totalColis} colis à livrer{capacite ? `, ${capacite} au plus par livreur` : ''}.
+              </p>
+              {capaciteInsuffisante && (
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md bg-attention-50 px-3 py-2.5 text-sm text-attention">
+                  <p className="flex-1">
+                    {livreursPossibles
+                      ? `Il faut au moins ${livreursNecessaires} livreurs pour ${totalColis} colis.`
+                      : `Trop de colis pour ${Math.min(NOMBRE_MAX_LIVREURS, destinations.length)} livreurs : augmentez la capacité.`}
+                  </p>
+                  {livreursPossibles && (
+                    <button type="button" onClick={() => { setNbLivreurs(livreursNecessaires); reinitialiserResultat(); }} className="btn-encre px-3 py-1.5 text-sm">
+                      Passer à {livreursNecessaires} livreurs
+                    </button>
+                  )}
+                </div>
+              )}
             </section>
 
             {/* Nombre de livreurs (VRP) */}

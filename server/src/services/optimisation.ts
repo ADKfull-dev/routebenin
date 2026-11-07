@@ -15,6 +15,16 @@
 import { solveTour, computeTourDistance } from '../algorithms/tsp.js';
 import { matriceHaversine, type Coordonnee } from '../algorithms/distance.js';
 import { repartirTournees, repartitionNaive, type CritereVrp } from '../algorithms/vrp.js';
+import {
+  aDesFenetres,
+  dureesDepuisDistances,
+  heureEnSecondes,
+  ordonnerAvecFenetres,
+  repartirAvecContraintes,
+  simuler,
+  type Contraintes,
+  type Simulation,
+} from '../algorithms/contraintes.js';
 import { matriceDistancesOSRM, traceItineraire } from './osrm.js';
 
 export interface Arret {
@@ -22,6 +32,70 @@ export interface Arret {
   label: string;
   lat: number;
   lng: number;
+  /** Créneau de livraison « HH:MM » (début et/ou fin), optionnel. */
+  fenetre?: { debut: string | null; fin: string | null } | null;
+  /** Nombre de colis à livrer (1 par défaut). */
+  colis?: number;
+}
+
+/** Horaires simulés d'une tournée (heures en secondes depuis minuit). */
+export interface Horaires {
+  heureDepart: number;
+  /** Arrivée au point final (retour au dépôt ou arrivée). */
+  heureFin: number;
+  /** Un passage par livraison, dans l'ordre des étapes (départ et arrivée exclus). */
+  passages: { arrivee: number; attente: number; retard: number }[];
+  retards: number;
+  retardTotal: number;
+  attenteTotale: number;
+  /** Colis transportés et capacité du véhicule. */
+  charge: number;
+  capacite: number | null;
+  /** Au moins une livraison a un créneau. */
+  avecFenetres: boolean;
+  /** Durées estimées à 25 km/h (pas de durées OSRM). */
+  estime: boolean;
+}
+
+export const HEURE_DEPART_DEFAUT = 8 * 3600;
+
+/** Contraintes de la tournée, indexées comme `noeuds` (départ en 0). */
+function construireContraintes(
+  noeuds: Arret[],
+  distances: number[][],
+  durations: number[][] | null,
+  entree: EntreeOptimisation,
+  secondesParArret: number,
+  indexArrivee: number | null,
+): Contraintes {
+  return {
+    durees: durations ?? dureesDepuisDistances(distances),
+    heureDepart: heureEnSecondes(entree.heureDepart) ?? HEURE_DEPART_DEFAUT,
+    service: secondesParArret,
+    fenetres: noeuds.map((a, i) => {
+      if (i === 0 || i === indexArrivee || !a.fenetre) return null;
+      const debut = heureEnSecondes(a.fenetre.debut);
+      const fin = heureEnSecondes(a.fenetre.fin);
+      return debut === null && fin === null ? null : { debut, fin };
+    }),
+    demandes: noeuds.map((a, i) => (i === 0 || i === indexArrivee ? 0 : Math.max(0, a.colis ?? 1))),
+    capacite: entree.capaciteVehicule ?? null,
+  };
+}
+
+function versHoraires(s: Simulation, c: Contraintes, estime: boolean): Horaires {
+  return {
+    heureDepart: c.heureDepart,
+    heureFin: s.heureFin,
+    passages: s.passages.map(({ arrivee, attente, retard }) => ({ arrivee, attente, retard })),
+    retards: s.nombreRetards,
+    retardTotal: s.retardTotal,
+    attenteTotale: s.passages.reduce((t, p) => t + p.attente, 0),
+    charge: s.charge,
+    capacite: c.capacite,
+    avecFenetres: aDesFenetres(c),
+    estime,
+  };
 }
 
 export type SourceDistance = 'osrm' | 'haversine';
@@ -37,6 +111,10 @@ export interface EntreeOptimisation {
   critereLivreurs?: CritereVrp;
   /** Temps passé à chaque livraison, en minutes (défaut : 5). */
   minutesParLivraison?: number;
+  /** Heure de départ du dépôt « HH:MM » (défaut : 08:00). */
+  heureDepart?: string | null;
+  /** Colis transportables par livreur (null = illimité). */
+  capaciteVehicule?: number | null;
 }
 
 export interface ResultatOptimisation {
@@ -57,6 +135,8 @@ export interface ResultatOptimisation {
   critereLivreurs?: CritereVrp | null;
   /** Temps sur place par livraison utilisé pour la durée totale (minutes). */
   minutesParLivraison?: number | null;
+  /** Horaires estimés (tournée unique, ou chaque livreur). */
+  horaires?: Horaires | null;
 }
 
 export class EntreeInvalideError extends Error {
@@ -125,7 +205,8 @@ async function calculerTournee(
         'En mode multi-livreurs, chaque livreur revient au point de départ : retirez l’arrivée.',
       );
     }
-    return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs, entree.critereLivreurs ?? 'equilibre', secondesParArret);
+    const c = construireContraintes(noeuds, distances, durations, entree, secondesParArret, null);
+    return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs, entree.critereLivreurs ?? 'equilibre', c);
   }
 
   const n = noeuds.length;
@@ -183,6 +264,29 @@ async function calculerTournee(
     noeudsItineraire = ordreOptimise.map((i) => noeuds[i]);
   }
 
+  // Créneaux horaires : l'ordre doit les respecter, même au prix de quelques km.
+  const indexArrivee = arriveeDistincte ? n - 1 : null;
+  const c = construireContraintes(noeuds, distances, durations, entree, secondesParArret, indexArrivee);
+  const fin = indexArrivee ?? 0;
+  if (aDesFenetres(c)) {
+    const livraisons = noeuds.map((_, i) => i).filter((i) => i !== 0 && i !== indexArrivee);
+    const route = ordonnerAvecFenetres(distances, 0, livraisons, fin, c);
+    if (arriveeDistincte) {
+      ordreOptimise = [...route, fin];
+      distanceOptimisee = distanceChemin(distances, ordreOptimise);
+      noeudsItineraire = ordreOptimise.map((i) => noeuds[i]);
+    } else {
+      ordreOptimise = route;
+      distanceOptimisee = computeTourDistance(distances, route);
+      noeudsItineraire = [...route.map((i) => noeuds[i]), noeuds[0]];
+    }
+  }
+  const horaires = versHoraires(
+    simuler(arriveeDistincte ? ordreOptimise.slice(0, -1) : ordreOptimise, fin, c),
+    c,
+    !durations,
+  );
+
   // Durée estimée (uniquement si OSRM a fourni les durées).
   let dureeSecondes: number | null = null;
   if (durations) {
@@ -223,6 +327,7 @@ async function calculerTournee(
     gainPourcent,
     dureeSecondes,
     nombreDestinations: destinations.length,
+    horaires,
     source,
     geometrie,
     geometrieInitiale,
@@ -250,10 +355,14 @@ async function optimiserMultiLivreurs(
   source: SourceDistance,
   k: number,
   critere: CritereVrp,
-  secondesParArret: number,
+  c: Contraintes,
 ): Promise<ResultatOptimisation> {
   const coords = noeuds.map((a) => ({ lat: a.lat, lng: a.lng }));
-  const vrp = repartirTournees(distances, coords, 0, k, critere, { durees: durations, secondesParArret });
+  // Créneaux ou capacité : moteur contraint ; sinon, répartition classique.
+  const vrp =
+    aDesFenetres(c) || c.capacite !== null
+      ? repartirAvecContraintes(distances, coords, 0, k, critere, c)
+      : repartirTournees(distances, coords, 0, k, critere, { durees: durations, secondesParArret: c.service });
   const distanceInitiale = repartitionNaive(distances, 0, k);
 
   const geometries = await Promise.all(
@@ -279,6 +388,7 @@ async function optimiserMultiLivreurs(
       source,
       geometrie: geometries[idx],
       geometrieInitiale: null,
+      horaires: versHoraires(simuler(t, 0, c), c, !durations),
     };
   });
 

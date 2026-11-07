@@ -4,11 +4,21 @@
  */
 import { z } from 'zod';
 
+const HEURE = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
 export const arretSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
+  fenetre: z
+    .object({
+      debut: z.string().regex(HEURE, 'Heure invalide (format HH:MM).').nullable(),
+      fin: z.string().regex(HEURE, 'Heure invalide (format HH:MM).').nullable(),
+    })
+    .nullable()
+    .optional(),
+  colis: z.number().int().min(0).max(999).optional(),
 });
 
 export const optimizeSchema = z.object({
@@ -19,6 +29,8 @@ export const optimizeSchema = z.object({
   nombreLivreurs: z.number().int().min(1).max(6).optional().default(1),
   critereLivreurs: z.enum(['equilibre', 'arrets']).optional().default('equilibre'),
   minutesParLivraison: z.number().int().min(0).max(120).optional().default(5),
+  heureDepart: z.string().regex(HEURE, 'Heure de départ invalide (format HH:MM).').nullable().optional(),
+  capaciteVehicule: z.number().int().min(1, 'La capacité doit être d’au moins 1 colis.').max(9999).nullable().optional(),
 });
 
 const resultatBaseSchema = z.object({
@@ -32,6 +44,21 @@ const resultatBaseSchema = z.object({
   source: z.enum(['osrm', 'haversine']),
   geometrie: z.array(z.tuple([z.number(), z.number()])).nullable(),
   geometrieInitiale: z.array(z.tuple([z.number(), z.number()])).nullable().optional(),
+  horaires: z
+    .object({
+      heureDepart: z.number(),
+      heureFin: z.number(),
+      passages: z.array(z.object({ arrivee: z.number(), attente: z.number(), retard: z.number() })),
+      retards: z.number(),
+      retardTotal: z.number(),
+      attenteTotale: z.number(),
+      charge: z.number(),
+      capacite: z.number().nullable(),
+      avecFenetres: z.boolean(),
+      estime: z.boolean(),
+    })
+    .nullable()
+    .optional(),
 });
 
 const resultatSchema = resultatBaseSchema.extend({

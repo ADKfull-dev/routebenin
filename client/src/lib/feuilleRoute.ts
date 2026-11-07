@@ -7,6 +7,22 @@
 import type { Arret, ResultatOptimisation } from '../types';
 import { formatDistance, formatDuree, formatPourcent } from './format';
 import { dureeJournee } from './duree';
+import { formatHeure, libelleFenetre } from './horaires';
+
+/** Heure prévue, créneau et colis d'un point du parcours (i = rang dans `parcours`). */
+function infosHoraire(infos: InfosFeuille, i: number, nbPoints: number): { heure: string | null; creneau: string | null; colis: number | null } {
+  const { resultat } = infos;
+  const h = resultat.horaires;
+  const a = parcours(infos)[i];
+  const dernier = i === nbPoints - 1 && i > 0;
+  const heure = !h ? null : i === 0 ? formatHeure(h.heureDepart) : dernier ? formatHeure(h.heureFin) : h.passages[i - 1] ? formatHeure(h.passages[i - 1].arrivee) : null;
+  const livraison = i > 0 && !dernier;
+  return {
+    heure,
+    creneau: livraison ? libelleFenetre(a.fenetre) : null,
+    colis: livraison && a.colis !== undefined && a.colis !== 1 ? a.colis : null,
+  };
+}
 
 export interface InfosFeuille {
   resultat: ResultatOptimisation;
@@ -87,7 +103,9 @@ export function texteFeuille(infos: InfosFeuille): string {
     const estDepart = i === 0;
     const estRetour = boucle && i === pts.length - 1;
     const prefixe = estDepart ? '🏁 Départ' : estRetour ? '🔁 Retour' : !boucle && i === pts.length - 1 ? `🏁 ${i}. Arrivée` : `${i}.`;
-    l.push(`${prefixe} ${libelleCourt(a.label)}`);
+    const { heure, creneau, colis } = infosHoraire(infos, i, pts.length);
+    const details = [creneau ? `créneau ${creneau}` : null, colis !== null ? `${colis} colis` : null].filter(Boolean).join(', ');
+    l.push(`${prefixe} ${libelleCourt(a.label)}${heure ? ` — ${i === 0 ? '' : 'vers '}${heure}` : ''}${details ? ` (${details})` : ''}`);
   });
   const troncons = liensGoogleMaps(infos);
   l.push('');
@@ -119,9 +137,15 @@ export function htmlFeuille(infos: InfosFeuille): string {
       const repere = estDepart ? 'D' : estRetour ? 'R' : String(i);
       const role = estDepart ? 'Départ' : estRetour ? 'Retour au départ' : estArrivee ? 'Arrivée' : '';
       const livrable = !estDepart && !estRetour;
+      const { heure, creneau, colis } = infosHoraire(infos, i, pts.length);
+      const horaire = [
+        heure ? `${estDepart ? 'Départ' : 'Prévu vers'} ${heure}` : null,
+        creneau ? `créneau ${creneau}` : null,
+        colis !== null ? `${colis} colis` : null,
+      ].filter(Boolean).join(' · ');
       return `<tr>
         <td class="num"><span class="pastille${estDepart || estRetour ? ' sombre' : ''}">${repere}</span></td>
-        <td><div class="adr">${esc(a.label)}</div>${role ? `<div class="role">${role}</div>` : ''}
+        <td><div class="adr">${esc(a.label)}</div>${role ? `<div class="role">${role}</div>` : ''}${horaire ? `<div class="horaire">${esc(horaire)}</div>` : ''}
             <div class="gps">${a.lat.toFixed(5)}, ${a.lng.toFixed(5)} · <a href="${lienPoint(a)}">ouvrir la carte</a></div></td>
         <td class="case">${livrable ? '<span class="cb"></span>' : ''}</td>
         <td class="obs"></td>
@@ -149,6 +173,7 @@ export function htmlFeuille(infos: InfosFeuille): string {
   .kpi b { display: block; font-size: 16px; margin-top: 2px; }
   .kpi span { color: #5b6574; font-size: 11px; }
   .kpi small { display: block; color: #5b6574; font-size: 10px; margin-top: 2px; }
+  .horaire { font-size: 12px; font-weight: 600; margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; font-size: 11px; color: #5b6574; font-weight: 600; border-bottom: 1px solid #171B3F; padding: 6px 6px; }
   td { border-bottom: 1px solid #E6E8EC; padding: 8px 6px; vertical-align: top; }

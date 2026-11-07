@@ -11,6 +11,29 @@ export interface Arret {
   label: string;
   lat: number;
   lng: number;
+  /** Créneau de livraison « HH:MM » (début et/ou fin), optionnel. */
+  fenetre?: { debut: string | null; fin: string | null } | null;
+  /** Nombre de colis à livrer (1 par défaut). */
+  colis?: number;
+}
+
+/** Horaires simulés d'une tournée (heures en secondes depuis minuit). */
+export interface Horaires {
+  heureDepart: number;
+  /** Arrivée au point final (retour au dépôt ou arrivée). */
+  heureFin: number;
+  /** Un passage par livraison, dans l'ordre des étapes (départ et arrivée exclus). */
+  passages: { arrivee: number; attente: number; retard: number }[];
+  retards: number;
+  retardTotal: number;
+  attenteTotale: number;
+  /** Colis transportés et capacité du véhicule. */
+  charge: number;
+  capacite: number | null;
+  /** Au moins une livraison a un créneau. */
+  avecFenetres: boolean;
+  /** Durées estimées à 25 km/h (pas de durées OSRM). */
+  estime: boolean;
 }
 
 /** Résultat renvoyé par un géocodage (recherche d'adresse). */
@@ -58,6 +81,8 @@ export interface ResultatOptimisation {
   critereLivreurs?: CritereLivreurs | null;
   /** Temps sur place par livraison utilisé pour la durée totale (minutes ; 5 si absent). */
   minutesParLivraison?: number | null;
+  /** Horaires estimés (tournée unique, ou chaque livreur). */
+  horaires?: Horaires | null;
 }
 
 export type CritereLivreurs = 'equilibre' | 'arrets';

@@ -55,7 +55,7 @@ distance totale de 20 à 30 %**.
 
 ### Fonctionnalités avancées (bonus, selon le temps)
 - [ ] **Multi-livreurs** (VRP) : répartir les points entre plusieurs tournées.
-- [ ] Contraintes : fenêtres horaires, capacité du véhicule.
+- [x] Contraintes : fenêtres horaires, capacité du véhicule.
 - [x] Mode hors-ligne léger (PWA) pour les zones à faible réseau.
 - [ ] Export de la feuille de route (PDF / partage WhatsApp).
 - [ ] Comparaison visuelle « tournée naïve vs optimisée » (animation).

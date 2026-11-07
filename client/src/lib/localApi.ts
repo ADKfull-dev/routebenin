@@ -19,6 +19,8 @@ import {
 import { solveTour, computeTourDistance, matriceHaversine, type Coordonnee } from './tsp';
 import { repartirTournees, repartitionNaive, type CritereVrp } from './vrp';
 import { matriceDepuisPack, traceDepuisPack } from './packDemo';
+import { aDesFenetres, ordonnerAvecFenetres, repartirAvecContraintes, simuler, type Contraintes } from './contraintes';
+import { construireContraintes, versHoraires } from './horaires';
 
 const OSRM = 'https://router.project-osrm.org';
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
@@ -92,12 +94,14 @@ async function optimiserMultiLivreurs(
   source: 'osrm' | 'haversine',
   k: number,
   critere: CritereVrp,
-  secondesParArret: number,
+  c: Contraintes,
 ): Promise<ResultatOptimisation> {
-  const vrp = repartirTournees(distances, noeuds.map((a) => ({ lat: a.lat, lng: a.lng })), 0, k, critere, {
-    durees: durations,
-    secondesParArret,
-  });
+  const coords = noeuds.map((a) => ({ lat: a.lat, lng: a.lng }));
+  // Créneaux ou capacité : moteur contraint ; sinon, répartition classique.
+  const vrp =
+    aDesFenetres(c) || c.capacite !== null
+      ? repartirAvecContraintes(distances, coords, 0, k, critere, c)
+      : repartirTournees(distances, coords, 0, k, critere, { durees: durations, secondesParArret: c.service });
   const distanceInitiale = repartitionNaive(distances, 0, k);
   const geometries = await Promise.all(
     vrp.tournees.map((t) =>
@@ -123,6 +127,7 @@ async function optimiserMultiLivreurs(
       source,
       geometrie: geometries[idx],
       geometrieInitiale: null,
+      horaires: versHoraires(simuler(t, 0, c), c, !durations),
     };
   });
   const gainMetres = Math.max(0, distanceInitiale - vrp.total);
@@ -178,7 +183,8 @@ async function calculerTournee(entree: EntreeOptimisation, secondesParArret: num
     if (arriveeDistincte) {
       throw new ApiError('En mode multi-livreurs, chaque livreur revient au point de départ : retirez l’arrivée.');
     }
-    return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs, entree.critereLivreurs ?? 'equilibre', secondesParArret);
+    const c = construireContraintes(noeuds, distances, durations, entree, secondesParArret, null);
+    return optimiserMultiLivreurs(noeuds, distances, durations, source, nombreLivreurs, entree.critereLivreurs ?? 'equilibre', c);
   }
 
   const n = noeuds.length;
@@ -220,6 +226,29 @@ async function calculerTournee(entree: EntreeOptimisation, secondesParArret: num
     noeudsItineraire = ordreOptimise.map((i) => noeuds[i]);
   }
 
+  // Créneaux horaires : l'ordre doit les respecter, même au prix de quelques km.
+  const indexArrivee = arriveeDistincte ? n - 1 : null;
+  const c = construireContraintes(noeuds, distances, durations, entree, secondesParArret, indexArrivee);
+  const fin = indexArrivee ?? 0;
+  if (aDesFenetres(c)) {
+    const livraisons = noeuds.map((_, i) => i).filter((i) => i !== 0 && i !== indexArrivee);
+    const route = ordonnerAvecFenetres(distances, 0, livraisons, fin, c);
+    if (arriveeDistincte) {
+      ordreOptimise = [...route, fin];
+      distanceOptimisee = distanceChemin(distances, ordreOptimise);
+      noeudsItineraire = ordreOptimise.map((i) => noeuds[i]);
+    } else {
+      ordreOptimise = route;
+      distanceOptimisee = computeTourDistance(distances, route);
+      noeudsItineraire = [...route.map((i) => noeuds[i]), noeuds[0]];
+    }
+  }
+  const horaires = versHoraires(
+    simuler(arriveeDistincte ? ordreOptimise.slice(0, -1) : ordreOptimise, fin, c),
+    c,
+    !durations,
+  );
+
   let dureeSecondes: number | null = null;
   if (durations) {
     dureeSecondes = 0;
@@ -251,6 +280,7 @@ async function calculerTournee(entree: EntreeOptimisation, secondesParArret: num
     gainPourcent,
     dureeSecondes,
     nombreDestinations: destinations.length,
+    horaires,
     source,
     geometrie,
     geometrieInitiale,

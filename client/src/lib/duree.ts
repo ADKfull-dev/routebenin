@@ -11,7 +11,9 @@ export interface DureeTournee {
   route: number;
   /** Temps sur place, toutes livraisons (s). */
   surPlace: number;
-  /** route + surPlace (s). */
+  /** Attente avant l'ouverture des créneaux (s). */
+  attente: number;
+  /** route + surPlace + attente (s). */
   total: number;
   minutesParLivraison: number;
 }
@@ -24,7 +26,8 @@ export function minutesParLivraison(r: ResultatOptimisation): number {
 export function dureeTournee(r: ResultatOptimisation, minutes = minutesParLivraison(r)): DureeTournee | null {
   if (r.dureeSecondes === null) return null;
   const surPlace = minutes * 60 * r.nombreDestinations;
-  return { route: r.dureeSecondes, surPlace, total: r.dureeSecondes + surPlace, minutesParLivraison: minutes };
+  const attente = r.horaires?.attenteTotale ?? 0;
+  return { route: r.dureeSecondes, surPlace, attente, total: r.dureeSecondes + surPlace + attente, minutesParLivraison: minutes };
 }
 
 /**

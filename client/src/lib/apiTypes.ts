@@ -18,6 +18,10 @@ export interface EntreeOptimisation {
   critereLivreurs?: 'equilibre' | 'arrets';
   /** Temps passé à chaque livraison, en minutes (défaut : 5). */
   minutesParLivraison?: number;
+  /** Heure de départ du dépôt « HH:MM » (défaut : 08:00). */
+  heureDepart?: string | null;
+  /** Colis transportables par livreur (null = illimité). */
+  capaciteVehicule?: number | null;
 }
 
 export interface StatsDashboard {
