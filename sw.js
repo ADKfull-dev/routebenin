@@ -18,11 +18,11 @@
  *  - polices Google : cache d'abord ;
  *  - /api (mode serveur) : jamais mis en cache.
  */
-const VERSION = '8202b2139830';
+const VERSION = '1d5eb5ee2727';
 const PRECACHE = [
   "index.html",
-  "assets/index-DlGXzgQh.css",
-  "assets/index-CMv1FsJo.js",
+  "assets/index-WvN99CVm.css",
+  "assets/index-BUL7XusN.js",
   "assets/packDemo-D0mpjruL.js",
   "icons/apple-touch-icon.png",
   "icons/favicon-32.png",
