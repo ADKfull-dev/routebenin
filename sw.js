@@ -18,11 +18,11 @@
  *  - polices Google : cache d'abord ;
  *  - /api (mode serveur) : jamais mis en cache.
  */
-const VERSION = 'f0430cec413a';
+const VERSION = '7fc69e063644';
 const PRECACHE = [
   "index.html",
-  "assets/index-DI3hZ4fC.css",
-  "assets/index-C8w4uQSL.js",
+  "assets/index-CoKtAEQW.css",
+  "assets/index-D20CGFcm.js",
   "assets/packDemo-D0mpjruL.js",
   "icons/apple-touch-icon.png",
   "icons/favicon-32.png",
@@ -153,7 +153,9 @@ self.addEventListener('fetch', (event) => {
     if (req.mode === 'navigate') return event.respondWith(navigation(req));
     return event.respondWith(cacheDabord(CACHE_APP, req));
   }
-  if (url.hostname.endsWith('tile.openstreetmap.org')) return event.respondWith(tuile(event));
+  if (url.hostname.endsWith('tile.openstreetmap.org')) {
+    return event.respondWith(tuile(event));
+  }
   if (url.hostname === 'router.project-osrm.org' || url.hostname === 'nominatim.openstreetmap.org') {
     return event.respondWith(reseauDabord(event));
   }
