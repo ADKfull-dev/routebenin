@@ -27,6 +27,7 @@ pour d'autres villes et pays.
 - **Multi-livreurs (1 à 6)** : répartition équilibrée des adresses entre plusieurs livreurs partant du même point, une couleur par livreur.
 - **Envoi au livreur** : message WhatsApp prêt à partager, copie du texte, feuille de route imprimable/PDF (cases « Livré », observations, signature) et liens de navigation Google Maps.
 - **Paramètres** : profil utilisateur/entreprise, préférence distances routières.
+- **Mode hors-ligne (PWA)** : installable sur l'écran d'accueil du téléphone ; l'application, l'exemple de démo, les zones de carte déjà consultées et les derniers itinéraires calculés restent disponibles sans réseau (voir plus bas).
 - **Responsive** (ordinateur, tablette, mobile) + **mode sombre** automatique.
 
 ---
@@ -182,6 +183,31 @@ Limites : le fond de carte (tuiles OpenStreetMap) et la recherche d'adresses
 nécessitent toujours internet ; toute adresse ajoutée hors de l'exemple passe
 par OSRM normalement. Pour une indépendance totale, hébergez OSRM (Docker,
 section « Services géographiques »).
+
+---
+
+## 📶 Mode hors-ligne (PWA)
+
+Au Bénin le réseau mobile est souvent faible : RouteBénin est une **Progressive
+Web App**. Au premier passage en ligne, un *service worker* (`client/pwa/sw.js`,
+injecté au build par le plugin de `client/vite.config.ts`) met en cache toute
+l'application. Ensuite :
+
+| Ressource | Stratégie | Hors ligne |
+|---|---|---|
+| Application (HTML, JS, CSS, icônes, pack démo) | pré-cachée à l'installation | ✅ s'ouvre et optimise |
+| Tuiles de carte OSM | cache d'abord, zones **déjà vues** uniquement (max 2 000) | ✅ zones consultées |
+| OSRM (distances, tracés) | réseau d'abord, sinon dernière réponse connue | ✅ si déjà calculé, sinon vol d'oiseau |
+| Nominatim (adresses) | réseau d'abord, sinon cache | quartiers locaux toujours dispo |
+| Historique, profil | `localStorage` | ✅ |
+
+- Bandeau « Hors ligne » automatique, bouton **Installer** (Android/Chrome),
+  instructions « Sur l'écran d'accueil » sur iPhone.
+- Nouvelle version déployée → bandeau **« Mettre à jour »** (pas de rechargement
+  forcé en pleine saisie).
+- Paramètres → *Application et hors-ligne* : état, espace utilisé, vider le cache.
+- Pas de pré-téléchargement massif des tuiles : interdit par la politique
+  d'usage d'OpenStreetMap.
 
 ---
 

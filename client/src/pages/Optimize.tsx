@@ -194,7 +194,11 @@ export function Optimize() {
       });
       setResultat(r);
       if (r.source === 'haversine') {
-        toast.info('Itinéraire estimé à vol d’oiseau (service routier indisponible).');
+        toast.info(
+          navigator.onLine
+            ? 'Itinéraire estimé à vol d’oiseau (service routier indisponible).'
+            : 'Hors ligne : itinéraire estimé à vol d’oiseau.',
+        );
       } else {
         toast.succes(`Tournée optimisée : ${Math.round(r.gainPourcent)} % de distance en moins.`);
       }

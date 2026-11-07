@@ -159,6 +159,8 @@ export function MapView({ marqueurs, trace, traceInitial, traces, onClickCarte }
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          // CORS : tuiles lisibles par le service worker → gardées pour le hors-ligne.
+          crossOrigin="anonymous"
         />
         {montrerNaif && traceInitial && (
           <Polyline

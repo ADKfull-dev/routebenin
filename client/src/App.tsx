@@ -5,6 +5,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Route, History as HistoryIcon, Settings as SettingsIcon, MapPin } from 'lucide-react';
 import type { ComponentType } from 'react';
+import { BandeauxPwa, BoutonInstaller } from './components/Pwa';
 
 interface Lien {
   to: string;
@@ -69,10 +70,12 @@ export function App() {
       {/* En-tête mobile */}
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-ligne bg-white/90 px-4 py-3 backdrop-blur md:hidden">
         <Logo />
+        <BoutonInstaller compact />
       </header>
 
       {/* Contenu */}
       <main className="flex-1 pb-20 md:pb-0">
+        <BandeauxPwa />
         <Outlet />
       </main>
 

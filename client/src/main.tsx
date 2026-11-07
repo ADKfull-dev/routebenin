@@ -9,6 +9,9 @@ import { Optimize } from './pages/Optimize';
 import { History } from './pages/History';
 import { Settings } from './pages/Settings';
 import { ToastProvider } from './components/Toast';
+import { demarrerPwa } from './lib/pwa';
+
+demarrerPwa();
 
 const router = createHashRouter([
   {

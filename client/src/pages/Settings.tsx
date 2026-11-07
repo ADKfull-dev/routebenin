@@ -6,6 +6,7 @@ import { Save, User, Building2, MapPin } from 'lucide-react';
 import { api, ApiError, type Profil } from '../lib/api';
 import { Skeleton, Spinner } from '../components/ui';
 import { useToast } from '../components/Toast';
+import { CarteApplication } from '../components/Pwa';
 
 export function Settings() {
   const toast = useToast();
@@ -103,6 +104,8 @@ export function Settings() {
               </button>
             </label>
           </section>
+
+          <CarteApplication />
 
           <button onClick={enregistrer} disabled={enregistrement} className="btn-primaire self-start">
             {enregistrement ? <Spinner /> : <Save className="h-5 w-5" />}
