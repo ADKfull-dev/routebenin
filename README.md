@@ -309,9 +309,11 @@ git commit -m "Déploiement"
 git push -f https://github.com/ADKfull-dev/routebenin.git gh-pages
 ```
 
-Pour un déploiement **full-stack** (avec base de données partagée), hébergez le
-dossier `server/` sur un service Node (Render, Railway, Fly.io…) et le `client/`
-(build normal) sur un hébergeur statique, en pointant le proxy `/api` vers l'API.
+Pour la version **complète** (comptes, entreprises, OSRM du Bénin, https,
+sauvegardes) sur un VPS Ubuntu : `sudo deploy/serveur/installer.sh installer
+<domaine|auto> <email>` — voir [`deploy/serveur/README.md`](deploy/serveur/README.md).
+En production, l'API sert aussi l'interface (`npm --prefix client run
+build:serveur`, `CLIENT_DIST=…`), sur la même origine que le cookie de session.
 
 ## 📝 Licence et données
 

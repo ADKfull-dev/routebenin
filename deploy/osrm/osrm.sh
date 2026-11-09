@@ -8,6 +8,8 @@
 #
 #   ./osrm.sh preparer [dossier]           télécharge la carte et la prépare
 #   ./osrm.sh lancer   [dossier] [port]    lance le serveur (défaut : port 5000)
+#   sudo ./osrm.sh installer-service        VPS : service systemd local (127.0.0.1:5000)
+#                                          + mise à jour hebdomadaire de la carte
 #   sudo ./osrm.sh installer-serveur <domaine>
 #                                          VPS : service systemd + HTTPS (Caddy)
 #                                          + mise à jour hebdomadaire de la carte
@@ -58,8 +60,9 @@ lancer() {
     --max-table-size 200 "$d/carte/benin.osrm"
 }
 
-installer_serveur() {
-  local domaine="${1:?Usage : sudo $0 installer-serveur osrm.mon-domaine.bj}"
+# Service systemd + mise à jour hebdomadaire, OSRM n'écoutant qu'en local
+# (utilisé par deploy/serveur/installer.sh : l'API appelle OSRM en direct).
+installer_service() {
   [ "$(id -u)" -eq 0 ] || { echo "À lancer avec sudo." >&2; exit 1; }
   local d=/opt/routebenin-osrm script
   script="$(readlink -f "$0")"
@@ -106,6 +109,15 @@ Persistent=true
 WantedBy=timers.target
 UNIT
 
+  systemctl daemon-reload
+  systemctl enable --now routebenin-osrm routebenin-osrm-maj.timer
+  echo "✓ OSRM en service sur 127.0.0.1:5000"
+}
+
+# OSRM seul, exposé en https (pour le mode navigateur / GitHub Pages).
+installer_serveur() {
+  local domaine="${1:?Usage : sudo $0 installer-serveur osrm.mon-domaine.bj}"
+  installer_service
   # HTTPS automatique (Let's Encrypt) devant OSRM (qui envoie déjà les en-têtes CORS) et n'écoute qu'en local.
   if ! command -v caddy >/dev/null; then
     apt-get update && apt-get install -y caddy
@@ -116,8 +128,6 @@ $domaine {
 	reverse_proxy 127.0.0.1:5000
 }
 CADDY
-  systemctl daemon-reload
-  systemctl enable --now routebenin-osrm routebenin-osrm-maj.timer
   systemctl reload caddy || systemctl restart caddy
   echo "✓ OSRM en ligne : https://$domaine"
   echo "  Test : curl 'https://$domaine/route/v1/driving/2.4183,6.3654;2.3912,6.3703?overview=false'"
@@ -126,6 +136,7 @@ CADDY
 case "${1:-}" in
   preparer) shift; preparer "$@" ;;
   lancer) shift; lancer "$@" ;;
+  installer-service) shift; installer_service "$@" ;;
   installer-serveur) shift; installer_serveur "$@" ;;
-  *) sed -n '2,14p' "$0"; exit 1 ;;
+  *) sed -n '2,16p' "$0"; exit 1 ;;
 esac

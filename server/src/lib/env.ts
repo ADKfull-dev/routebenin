@@ -51,6 +51,9 @@ export const env = {
   /** Cookie de session réservé au https (à activer derrière un proxy https). */
   COOKIE_SECURISE: lire('COOKIE_SECURISE', 'non') === 'oui',
 
+  /** Dossier de l'interface compilée à servir (production, même origine). Vide : API seule. */
+  CLIENT_DIST: lire('CLIENT_DIST', ''),
+
   /** Pays privilégié pour le géocodage (codes ISO séparés par des virgules). */
   GEOCODE_COUNTRYCODES: lire('GEOCODE_COUNTRYCODES', 'bj'),
 } as const;

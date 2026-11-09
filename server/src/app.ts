@@ -9,6 +9,8 @@ import type { Request, Response, NextFunction } from 'express';
 import { env } from './lib/env.js';
 import { apiRouter } from './routes/index.js';
 import { HttpError } from './lib/http.js';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 // Node essaie IPv6 puis IPv4 avec seulement 250 ms par tentative (« happy
 // eyeballs »). Sur une connexion lente (mobile, Afrique de l'Ouest), toutes les
@@ -29,7 +31,27 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 app.use('/api', apiRouter);
 
-// Route inconnue → 404 JSON.
+// Route d'API inconnue → 404 JSON.
+app.use('/api', (_req, res) => {
+  res.status(404).json({ erreur: 'Ressource introuvable.' });
+});
+
+// Production : l'API sert aussi l'interface compilée (CLIENT_DIST), sur la même
+// origine — nécessaire au cookie de session. Fichiers à empreinte (assets/)
+// gardés un an ; index.html et sw.js toujours revérifiés (mises à jour PWA).
+if (env.CLIENT_DIST && existsSync(resolve(env.CLIENT_DIST, 'index.html'))) {
+  const racine = resolve(env.CLIENT_DIST);
+  app.use(
+    express.static(racine, {
+      index: 'index.html',
+      setHeaders: (res, chemin) => {
+        if (/[\\/]assets[\\/]/.test(chemin)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        else res.setHeader('Cache-Control', 'no-cache');
+      },
+    }),
+  );
+}
+
 app.use((_req, res) => {
   res.status(404).json({ erreur: 'Ressource introuvable.' });
 });

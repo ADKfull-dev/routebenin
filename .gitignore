@@ -9,4 +9,5 @@ server/prisma/dev.db
 server/prisma/test-*.db
 server/prisma/*.db-journal
 # Vite
+client/dist-serveur/
 client/.vite/
