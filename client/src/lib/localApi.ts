@@ -22,7 +22,7 @@ import { matriceDepuisPack, traceDepuisPack } from './packDemo';
 import { aDesFenetres, ordonnerAvecFenetres, repartirAvecContraintes, simuler, type Contraintes } from './contraintes';
 import { construireContraintes, versHoraires } from './horaires';
 
-const OSRM = 'https://router.project-osrm.org';
+const OSRM_PUBLIC = 'https://router.project-osrm.org';
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
 const CLE_TOURNEES = 'routebenin.tournees';
 const CLE_PROFIL = 'routebenin.profil';
@@ -43,7 +43,7 @@ function ecrireTournees(t: TourneeSauvegardee[]): void {
   }
 }
 function lireProfil(): Profil {
-  const defaut: Profil = { id: 'profil', nomUtilisateur: null, nomEntreprise: null, ville: null, prefererOsrm: true, minutesParLivraison: 5 };
+  const defaut: Profil = { id: 'profil', nomUtilisateur: null, nomEntreprise: null, ville: null, prefererOsrm: true, minutesParLivraison: 5, serveurOsrm: null };
   try {
     const p = localStorage.getItem(CLE_PROFIL);
     return p ? { ...defaut, ...(JSON.parse(p) as Partial<Profil>) } : defaut;
@@ -55,25 +55,61 @@ function lireProfil(): Profil {
 /* ---------- Services géographiques (navigateur) ---------- */
 const coordsChaine = (p: Coordonnee[]) => p.map((c) => `${c.lng},${c.lat}`).join(';');
 
+/**
+ * Serveurs OSRM essayés dans l'ordre : celui des Paramètres (auto-hébergé),
+ * celui fixé à la compilation (VITE_OSRM_URL), puis le serveur public.
+ */
+function serveursOsrm(): string[] {
+  const perso = lireProfil().serveurOsrm?.trim().replace(/\/+$/, '');
+  const compile = (import.meta.env.VITE_OSRM_URL as string | undefined)?.trim().replace(/\/+$/, '');
+  return [...new Set([perso, compile, OSRM_PUBLIC].filter((u): u is string => !!u))];
+}
+
+async function appelOsrm<T extends { code: string }>(chemin: string): Promise<T> {
+  let derniere: unknown = new Error('osrm');
+  for (const base of serveursOsrm()) {
+    try {
+      const r = await fetch(`${base}${chemin}`, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error('osrm');
+      const d = (await r.json()) as T;
+      if (d.code !== 'Ok') throw new Error('osrm');
+      return d;
+    } catch (e) {
+      derniere = e;
+    }
+  }
+  throw derniere;
+}
+
+/** Vérifie qu'un serveur OSRM répond (bouton « Tester » des Paramètres). */
+export async function testerServeurOsrm(base: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${base.trim().replace(/\/+$/, '')}/route/v1/driving/2.4183,6.3654;2.3912,6.3703?overview=false`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    return r.ok && ((await r.json()) as { code: string }).code === 'Ok';
+  } catch {
+    return false;
+  }
+}
+
 async function osrmTable(points: Coordonnee[]) {
   const pack = await matriceDepuisPack(points); // exemple de démo : données OSRM pré-calculées
   if (pack) return pack;
-  const url = `${OSRM}/table/v1/driving/${coordsChaine(points)}?annotations=distance,duration`;
-  const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!r.ok) throw new Error('osrm');
-  const d = (await r.json()) as { code: string; distances: number[][]; durations: number[][] };
-  if (d.code !== 'Ok' || !d.distances) throw new Error('osrm');
+  const d = await appelOsrm<{ code: string; distances: number[][]; durations: number[][] }>(
+    `/table/v1/driving/${coordsChaine(points)}?annotations=distance,duration`,
+  );
+  if (!d.distances) throw new Error('osrm');
   return { distances: d.distances, durations: d.durations };
 }
 
 async function osrmRoute(points: Coordonnee[]) {
   const pack = await traceDepuisPack(points);
   if (pack) return pack;
-  const url = `${OSRM}/route/v1/driving/${coordsChaine(points)}?overview=full&geometries=geojson`;
-  const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!r.ok) throw new Error('osrm');
-  const d = (await r.json()) as { code: string; routes: { geometry: { coordinates: [number, number][] } }[] };
-  if (d.code !== 'Ok' || !d.routes?.[0]) throw new Error('osrm');
+  const d = await appelOsrm<{ code: string; routes: { geometry: { coordinates: [number, number][] } }[] }>(
+    `/route/v1/driving/${coordsChaine(points)}?overview=full&geometries=geojson`,
+  );
+  if (!d.routes?.[0]) throw new Error('osrm');
   return d.routes[0].geometry.coordinates;
 }
 

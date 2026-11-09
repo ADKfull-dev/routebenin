@@ -159,18 +159,20 @@ Par défaut, l'application utilise les serveurs **publics** d'OpenStreetMap
 Ces serveurs publics conviennent au développement et à une démonstration, mais
 sont **limités en débit**.
 
-Pour un usage réel/production, **hébergez votre propre instance OSRM** avec la
-carte du Bénin (via Docker) et renseignez son URL dans `server/.env` :
+Pour un usage réel, **hébergez votre propre OSRM pour tout le Bénin**, sans
+Docker (binaires précompilés, ~200 Mo de RAM en marche, préparation en ~1 min) :
 
 ```bash
-# Exemple (nécessite Docker) — carte : https://download.geofabrik.de/africa/benin.html
-wget https://download.geofabrik.de/africa/benin-latest.osm.pbf
-docker run -t -v "$(pwd):/data" osrm/osrm-backend osrm-extract -p /opt/car.lua /data/benin-latest.osm.pbf
-docker run -t -v "$(pwd):/data" osrm/osrm-backend osrm-partition /data/benin-latest.osrm
-docker run -t -v "$(pwd):/data" osrm/osrm-backend osrm-customize /data/benin-latest.osrm
-docker run -t -i -p 5000:5000 -v "$(pwd):/data" osrm/osrm-backend osrm-routed --algorithm mld /data/benin-latest.osrm
-# puis dans server/.env : OSRM_URL=http://localhost:5000
+npm run osrm:preparer   # télécharge et prépare la carte du Bénin
+npm run osrm:lancer     # http://localhost:5000
+# full-stack : OSRM_URL=http://localhost:5000 dans server/.env
+# navigateur : Paramètres → « Serveur d'itinéraires »
 ```
+
+Sur un VPS, `sudo deploy/osrm/osrm.sh installer-serveur osrm.mon-domaine.bj`
+installe le service, le https (Caddy) et la mise à jour hebdomadaire de la carte.
+Détails : [`deploy/osrm/README.md`](deploy/osrm/README.md). Le serveur public
+reste utilisé en secours si le vôtre ne répond pas.
 
 Aucune clé secrète n'est requise ni exposée côté frontend.
 
@@ -200,8 +202,8 @@ npm --prefix server run pack-demo   # régénère le pack (~4 min, 1 requête/s)
 
 Limites : le fond de carte (tuiles OpenStreetMap) et la recherche d'adresses
 nécessitent toujours internet ; toute adresse ajoutée hors de l'exemple passe
-par OSRM normalement. Pour une indépendance totale, hébergez OSRM (Docker,
-section « Services géographiques »).
+par OSRM normalement. Pour une indépendance totale, hébergez OSRM (section
+« Services géographiques »).
 
 ---
 

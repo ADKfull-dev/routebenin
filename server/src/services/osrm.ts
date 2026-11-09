@@ -20,7 +20,32 @@ function coordsVersChaine(points: Coordonnee[]): string {
   return points.map((p) => `${p.lng},${p.lat}`).join(';');
 }
 
-async function appelOSRM<T>(url: URL): Promise<T> {
+/**
+ * Serveurs OSRM essayés dans l'ordre : l'instance principale (OSRM_URL, en
+ * général auto-hébergée — voir deploy/osrm), puis le secours (OSRM_URL_SECOURS,
+ * par défaut le serveur public de démonstration).
+ */
+function serveursOSRM(): string[] {
+  return [...new Set([env.OSRM_URL, env.OSRM_URL_SECOURS].filter((u) => u !== ''))];
+}
+
+async function appelOSRM<T>(chemin: string, params: Record<string, string>): Promise<T> {
+  let derniere: unknown = null;
+  for (const base of serveursOSRM()) {
+    const url = new URL(chemin, base);
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+    try {
+      return await appelUnServeur<T>(url);
+    } catch (e) {
+      derniere = e;
+    }
+  }
+  throw derniere instanceof Error
+    ? derniere
+    : new ServiceIndisponibleError('Le service de calcul d’itinéraire (OSRM) est injoignable.');
+}
+
+async function appelUnServeur<T>(url: URL): Promise<T> {
   let reponse: Response;
   try {
     reponse = await fetch(url, { signal: AbortSignal.timeout(15_000) });
@@ -51,12 +76,9 @@ export async function matriceDistancesOSRM(
 ): Promise<{ distances: number[][]; durations: number[][] }> {
   const pack = matriceDepuisPack(points); // exemple de démo : données OSRM pré-calculées
   if (pack) return pack;
-  const url = new URL(
-    `/table/v1/driving/${coordsVersChaine(points)}`,
-    env.OSRM_URL,
-  );
-  url.searchParams.set('annotations', 'distance,duration');
-  const data = await appelOSRM<ReponseTable>(url);
+  const data = await appelOSRM<ReponseTable>(`/table/v1/driving/${coordsVersChaine(points)}`, {
+    annotations: 'distance,duration',
+  });
   if (!data.distances || !data.durations) {
     throw new ServiceIndisponibleError('Réponse OSRM incomplète (matrice manquante).');
   }
@@ -83,13 +105,10 @@ export async function traceItineraire(points: Coordonnee[]): Promise<{
 }> {
   const pack = traceDepuisPack(points);
   if (pack) return pack;
-  const url = new URL(
-    `/route/v1/driving/${coordsVersChaine(points)}`,
-    env.OSRM_URL,
-  );
-  url.searchParams.set('overview', 'full');
-  url.searchParams.set('geometries', 'geojson');
-  const data = await appelOSRM<ReponseRoute>(url);
+  const data = await appelOSRM<ReponseRoute>(`/route/v1/driving/${coordsVersChaine(points)}`, {
+    overview: 'full',
+    geometries: 'geojson',
+  });
   const route = data.routes?.[0];
   if (!route) {
     throw new ServiceIndisponibleError('OSRM n’a renvoyé aucun itinéraire.');

@@ -58,6 +58,8 @@ export interface Profil {
   prefererOsrm: boolean;
   /** Temps passé à chaque livraison, en minutes. */
   minutesParLivraison: number;
+  /** Mode navigateur : serveur OSRM auto-hébergé, essayé avant le serveur public. */
+  serveurOsrm?: string | null;
 }
 
 export interface SauvegardePayload {

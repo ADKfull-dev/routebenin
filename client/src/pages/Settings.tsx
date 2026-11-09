@@ -2,16 +2,28 @@
  * Settings — profil utilisateur / entreprise et préférences d'optimisation.
  */
 import { useEffect, useState } from 'react';
-import { Save } from 'lucide-react';
+import { Save, PlugZap } from 'lucide-react';
 import { api, ApiError, type Profil } from '../lib/api';
 import { Skeleton, Spinner, SECTION, EnTetePage } from '../components/ui';
 import { useToast } from '../components/Toast';
 import { CarteApplication } from '../components/Pwa';
+import { testerServeurOsrm } from '../lib/localApi';
+
+/** En mode navigateur, l'appareil appelle OSRM lui-même : le serveur se règle ici. */
+const MODE_STATIQUE = import.meta.env.VITE_STATIC === 'true';
 
 export function Settings() {
   const toast = useToast();
   const [profil, setProfil] = useState<Profil | null>(null);
   const [enregistrement, setEnregistrement] = useState(false);
+  const [test, setTest] = useState<'en-cours' | 'ok' | 'echec' | null>(null);
+
+  const tester = async () => {
+    const url = profil?.serveurOsrm?.trim();
+    if (!url) return;
+    setTest('en-cours');
+    setTest((await testerServeurOsrm(url)) ? 'ok' : 'echec');
+  };
 
   useEffect(() => {
     api
@@ -34,6 +46,7 @@ export function Settings() {
         ville: profil.ville,
         prefererOsrm: profil.prefererOsrm,
         minutesParLivraison: profil.minutesParLivraison,
+        serveurOsrm: profil.serveurOsrm?.trim() || null,
       });
       setProfil(mis);
       toast.succes('Paramètres enregistrés.');
@@ -109,6 +122,35 @@ export function Settings() {
                 <span className={`absolute left-0 top-1 h-5 w-5 rounded-full transition-transform ${profil.prefererOsrm ? 'translate-x-6 bg-zem' : 'translate-x-1 bg-white'}`} />
               </button>
             </label>
+            {MODE_STATIQUE && profil.prefererOsrm && (
+              <div className="mt-5">
+                <label htmlFor="osrm" className="etiquette mb-1.5">Serveur d’itinéraires (facultatif)</label>
+                <div className="flex gap-2">
+                  <input
+                    id="osrm"
+                    className="champ"
+                    inputMode="url"
+                    placeholder="https://osrm.mon-entreprise.bj"
+                    value={profil.serveurOsrm ?? ''}
+                    onChange={(e) => {
+                      maj('serveurOsrm', e.target.value);
+                      setTest(null);
+                    }}
+                  />
+                  <button type="button" onClick={tester} disabled={!profil.serveurOsrm?.trim() || test === 'en-cours'} className="btn-secondaire shrink-0">
+                    {test === 'en-cours' ? <Spinner /> : <PlugZap className="h-5 w-5" />}
+                    Tester
+                  </button>
+                </div>
+                <p className={`aide mt-1 max-w-md ${test === 'ok' ? 'text-emerald-700' : test === 'echec' ? 'text-red-700' : ''}`}>
+                  {test === 'ok'
+                    ? 'Le serveur répond : il sera utilisé en priorité.'
+                    : test === 'echec'
+                      ? 'Pas de réponse. Vérifiez l’adresse (https obligatoire hors de cet ordinateur).'
+                      : 'Votre propre serveur OSRM, s’il y en a un. Sinon, ou s’il ne répond pas, le serveur public est utilisé.'}
+                </p>
+              </div>
+            )}
           </section>
 
           <CarteApplication />

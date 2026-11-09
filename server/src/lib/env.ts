@@ -18,6 +18,15 @@ export const env = {
   /** URL du service OSRM (distances routières + itinéraires). */
   OSRM_URL: lire('OSRM_URL', 'https://router.project-osrm.org'),
 
+  /**
+   * Serveur OSRM de secours, essayé si le principal ne répond pas.
+   * Mettre « aucun » pour désactiver.
+   */
+  OSRM_URL_SECOURS: (() => {
+    const v = lire('OSRM_URL_SECOURS', 'https://router.project-osrm.org');
+    return v === 'aucun' ? '' : v;
+  })(),
+
   /** URL du service Nominatim (géocodage d'adresses). */
   NOMINATIM_URL: lire('NOMINATIM_URL', 'https://nominatim.openstreetmap.org'),
 
