@@ -21,6 +21,7 @@ import { repartirTournees, repartitionNaive, type CritereVrp } from './vrp';
 import { matriceDepuisPack, traceDepuisPack } from './packDemo';
 import { aDesFenetres, ordonnerAvecFenetres, repartirAvecContraintes, simuler, type Contraintes } from './contraintes';
 import { construireContraintes, versHoraires } from './horaires';
+import { sansMotsGeneriques } from './quartiers';
 
 const OSRM_PUBLIC = 'https://router.project-osrm.org';
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
@@ -323,20 +324,27 @@ async function calculerTournee(entree: EntreeOptimisation, secondesParArret: num
   };
 }
 
+/* ---------- Géocodage (Nominatim) ---------- */
+async function nominatim(q: string): Promise<ResultatGeocodage[]> {
+  const url = `${NOMINATIM}/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=5&countrycodes=bj`;
+  let r: Response;
+  try {
+    r = await fetch(url, { headers: { 'Accept-Language': 'fr' }, signal: AbortSignal.timeout(10000) });
+  } catch {
+    throw new ApiError('Service de géocodage injoignable. Vérifiez votre connexion.');
+  }
+  if (!r.ok) throw new ApiError('Le service de géocodage a renvoyé une erreur.');
+  const data = (await r.json()) as { display_name: string; lat: string; lon: string }[];
+  return data.map((x) => ({ label: x.display_name, lat: Number(x.lat), lng: Number(x.lon) }));
+}
+
 /* ---------- Implémentation ---------- */
 export const localApi: ApiClient = {
   async geocoder(q: string): Promise<ResultatGeocodage[]> {
     if (q.trim().length < 3) return [];
-    const url = `${NOMINATIM}/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=5&countrycodes=bj`;
-    let r: Response;
-    try {
-      r = await fetch(url, { headers: { 'Accept-Language': 'fr' }, signal: AbortSignal.timeout(10000) });
-    } catch {
-      throw new ApiError('Service de géocodage injoignable. Vérifiez votre connexion.');
-    }
-    if (!r.ok) throw new ApiError('Le service de géocodage a renvoyé une erreur.');
-    const data = (await r.json()) as { display_name: string; lat: string; lon: string }[];
-    return data.map((x) => ({ label: x.display_name, lat: Number(x.lat), lng: Number(x.lon) }));
+    const r = await nominatim(q);
+    const repli = r.length === 0 ? sansMotsGeneriques(q) : null;
+    return repli ? nominatim(repli) : r;
   },
 
   async optimiser(entree: EntreeOptimisation): Promise<ResultatOptimisation> {

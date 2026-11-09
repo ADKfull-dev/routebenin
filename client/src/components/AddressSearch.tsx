@@ -57,7 +57,7 @@ export function AddressSearch({ onSelectionner, placeholder = 'Rechercher une ad
 
     // 1. Résultats locaux : immédiats, même sans connexion.
     const quartiers = chercherQuartiers(q, 4);
-    let locaux: Suggestion[] = quartiers.map((r) => ({ ...r, local: true, type: 'Quartier' }));
+    let locaux: Suggestion[] = quartiers.map((r) => ({ ...r, local: true }));
     setResultats(locaux);
     if (locaux.length > 0) setOuvert(true);
     let annule = false;

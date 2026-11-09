@@ -6,7 +6,7 @@
  * et gardé hors ligne par le service worker comme le reste de l'application.
  */
 import type { ResultatGeocodage } from '../types';
-import { normaliser, score } from './quartiers';
+import { normaliser, preparerRequete, score, scoreMots } from './quartiers';
 
 interface Fichier {
   departements: string[];
@@ -24,6 +24,8 @@ export interface Lieu {
   rang: number;
   /** Nom normalisé (recherche). */
   cle: string;
+  /** Commune et département normalisés (requêtes « Parakou Banikanni »). */
+  contexte: string;
 }
 
 let chargement: Promise<Lieu[]> | null = null;
@@ -34,12 +36,13 @@ export function chargerLieux(): Promise<Lieu[]> {
       const f = m.default as unknown as Fichier;
       const lieux: Lieu[] = f.lieux.map(([nom, lat, lng, c, rang]) => {
         const [commune, d] = f.communes[c];
-        return { nom, commune, departement: f.departements[d], lat, lng, rang, cle: normaliser(nom) };
+        const departement = f.departements[d];
+        return { nom, commune, departement, lat, lng, rang, cle: normaliser(nom), contexte: normaliser(`${commune} ${departement}`) };
       });
       // Chaque commune est cherchable, même sans lieu du même nom dans OSM.
       f.communes.forEach(([nom, d, lat, lng]) => {
         if (!lieux.some((l) => l.commune === nom && l.cle === normaliser(nom))) {
-          lieux.push({ nom, commune: nom, departement: f.departements[d], lat, lng, rang: -1, cle: normaliser(nom) });
+          lieux.push({ nom, commune: nom, departement: f.departements[d], lat, lng, rang: -1, cle: normaliser(nom), contexte: normaliser(f.departements[d]) });
         }
       });
       return lieux;
@@ -72,7 +75,8 @@ export async function chercherLieux(
   requete: string,
   { limite = 6, proche }: { limite?: number; proche?: { lat: number; lng: number } | null } = {},
 ): Promise<(ResultatGeocodage & { type: string })[]> {
-  const q = normaliser(requete);
+  const { mots } = preparerRequete(requete);
+  const q = mots.join(' ');
   if (q.length < 2) return [];
   const lieux = await chargerLieux();
   const notes: { l: Lieu; s: number }[] = [];
@@ -80,6 +84,15 @@ export async function chercherLieux(
   for (const l of lieux) {
     const s = l.cle.startsWith(q) ? 0 : l.cle.includes(q) ? 0.5 : null;
     if (s !== null) notes.push({ l, s });
+  }
+  // Plusieurs mots : lieu + commune (« Parakou Banikanni »), dans n'importe quel ordre.
+  if (mots.length > 1) {
+    const deja = new Set(notes.map((n) => n.l));
+    for (const l of lieux) {
+      if (deja.has(l)) continue;
+      const s = scoreMots(mots, l.cle, l.contexte);
+      if (s !== null) notes.push({ l, s });
+    }
   }
   if (notes.length < limite && q.length >= 4) {
     const deja = new Set(notes.map((n) => n.l));

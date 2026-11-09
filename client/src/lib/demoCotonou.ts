@@ -20,24 +20,24 @@ const arret = (label: string, lat: number, lng: number): Arret => ({
 });
 
 /** Point de départ suggéré de la tournée de démonstration. */
-export const DEPART_DEMO: Arret = arret('Ganhi (centre-ville)', 6.3622, 2.4281);
+export const DEPART_DEMO: Arret = arret('Ganhi (centre-ville)', 6.35476, 2.4381);
 
-/** Destinations de démonstration (quartiers de Cotonou et agglomération). */
+/** Destinations de démonstration (quartiers de Cotonou et agglomération, coordonnées OpenStreetMap). */
 export const DESTINATIONS_DEMO: Arret[] = [
-  arret('Marché Dantokpa', 6.3722, 2.43),
-  arret('Akpakpa', 6.362, 2.435),
-  arret('Fidjrossè', 6.358, 2.355),
-  arret('Cadjèhoun', 6.365, 2.39),
-  arret('Aéroport de Cotonou', 6.3572, 2.3844),
-  arret('Haie Vive', 6.363, 2.4),
-  arret('Les Cocotiers', 6.37, 2.41),
-  arret('Gbégamey', 6.375, 2.405),
-  arret('Jéricho', 6.368, 2.395),
-  arret('Vêdoko', 6.385, 2.385),
-  arret('Sainte-Rita', 6.373, 2.415),
-  arret('Place de l’Étoile Rouge', 6.376, 2.42),
-  arret('Abomey-Calavi (centre)', 6.4489, 2.3556),
-  arret('Porto-Novo (centre)', 6.4969, 2.6283),
+  arret('Marché Dantokpa', 6.37553, 2.4314),
+  arret('Akpakpa', 6.37029, 2.44784),
+  arret('Fidjrossè', 6.3525, 2.36755),
+  arret('Cadjèhoun', 6.35848, 2.39512),
+  arret('Aéroport de Cotonou', 6.35775, 2.38591),
+  arret('Haie Vive', 6.35522, 2.39761),
+  arret('Les Cocotiers', 6.35294, 2.39057),
+  arret('Gbégamey', 6.36406, 2.41305),
+  arret('Jéricho', 6.37225, 2.42595),
+  arret('Vêdoko', 6.37997, 2.39201),
+  arret('Sainte-Rita', 6.37921, 2.41321),
+  arret('Place de l’Étoile Rouge', 6.37146, 2.40979),
+  arret('Abomey-Calavi (centre)', 6.45386, 2.35425),
+  arret('Porto-Novo (centre)', 6.49907, 2.62534),
 ];
 
 /** Tournée de démonstration complète (départ + destinations). */

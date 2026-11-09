@@ -55,8 +55,8 @@ Code entièrement maison (aucune bibliothèque d'optimisation externe), dans
    - **charges équilibrées** (défaut) : charge = temps de conduite (durées OSRM)
      + 5 min par livraison ; on minimise Σ charge² = K·(moyenne² + variance).
      Sans durées (repli vol d'oiseau) : distance + 2 km par arrêt.
-     Exemple de Cotonou, 3 livreurs : 73 / 69 / 74 min de travail (écart 5 min)
-     contre 73 / 48 / 96 min avec « même nombre d'arrêts » ;
+     Exemple de Cotonou, 3 livreurs : 73 / 74 / 72 min de travail (écart 2 min)
+     contre 79 / 54 / 90 min avec « même nombre d'arrêts » ;
    - **même nombre d'arrêts** : distance totale minimale, ⌈n / K⌉ arrêts max.
 8. **Créneaux horaires et capacité (VRPTW capacitaire)** — `contraintes.ts` :
    chaque livraison peut avoir un créneau (« entre 10:00 et 12:00 », ou seulement
@@ -180,13 +180,33 @@ Aucune clé secrète n'est requise ni exposée côté frontend.
 
 ---
 
+## 🔎 Recherche d'adresses
+
+Trois sources fusionnées, les deux premières hors ligne :
+
+1. **quartiers et repères du Grand Cotonou** (`client/src/lib/quartiers.ts`) :
+   ~60 entrées dont les coordonnées sont relevées dans OpenStreetMap
+   (carrefours Saint-Michel, Védoko/Cica Toyota, Kpota, PK3, PK10, UAC, IITA,
+   Stade de l'Amitié…), avec alias (« UAC », « Tokpa », « Calavi ») ;
+2. **répertoire national** (~12 500 lieux OSM, voir plus haut) ;
+3. **Nominatim** en ligne (adresses précises, commerces).
+
+La recherche accepte la façon dont on donne une adresse au Bénin :
+**plusieurs mots dans n'importe quel ordre** (« Godomey Togoudo », « Porto-Novo
+Ouando », « Parakou Banikanni »), **mots génériques ignorés** (« carrefour
+Vèdoko », « pharmacie de Cadjèhoun », « marché Ganhi »), **abréviations**
+(« St Michel », « Ste Rita »), accents manquants et fautes de frappe. Nominatim
+échouant souvent avec « carrefour … », il est relancé sans ces mots.
+
+---
+
 ## 🧪 Démonstration
 
 Sur la page **Nouvelle tournée**, le bouton **« Charger un exemple »** insère
-14 adresses réelles de Cotonou et des environs (Dantokpa, Aéroport, Fidjrossè,
+14 quartiers de Cotonou et des environs (Dantokpa, Aéroport, Fidjrossè,
 Akpakpa, Cadjèhoun, Ganhi, Haie Vive, Abomey-Calavi, Porto-Novo…). Les
-coordonnées sont réelles ; la **tournée est fictive**, mais les distances et le
-gain calculés sont **réels**.
+coordonnées viennent d'OpenStreetMap ; la **tournée est fictive**, mais les
+distances et le gain calculés sont **réels** (157,7 → 131,6 km, −16,5 %).
 
 ### Démo fiable sans dépendre du serveur OSRM public
 
@@ -200,6 +220,7 @@ ou si le réseau de la salle est faible. Les données sont de vraies données OS
 
 ```bash
 npm --prefix server run pack-demo   # régénère le pack (~4 min, 1 requête/s)
+OSRM_URL=http://localhost:5000 npm --prefix server run pack-demo   # avec votre OSRM (deploy/osrm)
 ```
 
 Limites : le fond de carte (tuiles OpenStreetMap) et la recherche d'adresses

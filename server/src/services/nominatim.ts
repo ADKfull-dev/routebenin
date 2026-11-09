@@ -32,13 +32,41 @@ interface ReponseNominatim {
 }
 
 /**
+ * Mots qui précisent sans désigner le lieu : Nominatim échoue souvent avec
+ * (« Carrefour Étoile Rouge » → rien ; « Étoile Rouge » → trouvé). Miroir de
+ * MOTS_GENERIQUES dans client/src/lib/quartiers.ts.
+ */
+const MOTS_GENERIQUES = new Set([
+  'carrefour', 'carref', 'carf', 'rond', 'point', 'quartier', 'qtier', 'qt', 'marche', 'pharmacie', 'eglise',
+  'mosquee', 'ecole', 'college', 'ceg', 'lycee', 'plage', 'centre', 'ville', 'rue', 'von', 'pres', 'cote', 'face',
+  'derriere', 'vers', 'non', 'loin', 'de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'a', 'au', 'aux', 'et', 'en',
+]);
+
+const sansAccents = (m: string) =>
+  m.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+
+/** La requête sans ses mots génériques, ou null s'il n'y a rien à retirer. */
+export function sansMotsGeneriques(requete: string): string | null {
+  const mots = requete.trim().split(/\s+/);
+  const gardes = mots.filter((m) => !MOTS_GENERIQUES.has(sansAccents(m)));
+  return gardes.length > 0 && gardes.length < mots.length && gardes.join(' ').length >= 3 ? gardes.join(' ') : null;
+}
+
+/**
+ * Géocode une requête ; sans résultat, réessaie sans les mots génériques.
+ * @throws ServiceIndisponibleError si Nominatim est injoignable.
+ */
+export async function geocoder(requete: string, limite = 5): Promise<ResultatGeocodage[]> {
+  const r = await geocoderBrut(requete, limite);
+  const repli = r.length === 0 ? sansMotsGeneriques(requete) : null;
+  return repli ? geocoderBrut(repli, limite) : r;
+}
+
+/**
  * Géocode une requête texte et renvoie jusqu'à `limite` résultats.
  * @throws ServiceIndisponibleError si Nominatim est injoignable.
  */
-export async function geocoder(
-  requete: string,
-  limite = 5,
-): Promise<ResultatGeocodage[]> {
+async function geocoderBrut(requete: string, limite: number): Promise<ResultatGeocodage[]> {
   const q = requete.trim();
   if (q.length < 3) return [];
 
