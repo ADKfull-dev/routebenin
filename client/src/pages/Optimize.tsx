@@ -160,9 +160,19 @@ export function Optimize() {
     reinitialiserResultat();
   };
 
-  const modifierDestination = (id: string, modif: Partial<Pick<Arret, 'fenetre' | 'colis'>>) => {
+  const modifierDestination = (id: string, modif: Partial<Pick<Arret, 'fenetre' | 'colis' | 'telephone' | 'note'>>) => {
     setDestinations((d) => d.map((x) => (x.id === id ? { ...x, ...modif } : x)));
-    reinitialiserResultat();
+    if ('fenetre' in modif || 'colis' in modif) {
+      reinitialiserResultat();
+      return;
+    }
+    // Téléphone / indication : sans effet sur l'ordre, on les reporte dans le résultat.
+    const patch = (r: ResultatOptimisation): ResultatOptimisation => ({
+      ...r,
+      etapes: r.etapes.map((e) => (e.arret.id === id ? { ...e, arret: { ...e.arret, ...modif } } : e)),
+      livreurs: r.livreurs?.map(patch) ?? r.livreurs,
+    });
+    setResultat((r) => (r ? patch(r) : r));
   };
 
   // Chargement : colis à livrer et nombre minimal de livreurs pour la capacité.

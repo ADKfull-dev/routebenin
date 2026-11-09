@@ -10,7 +10,7 @@ import { dureeJournee } from './duree';
 import { formatHeure, libelleFenetre } from './horaires';
 
 /** Heure prévue, créneau et colis d'un point du parcours (i = rang dans `parcours`). */
-function infosHoraire(infos: InfosFeuille, i: number, nbPoints: number): { heure: string | null; creneau: string | null; colis: number | null } {
+export function infosHoraire(infos: InfosFeuille, i: number, nbPoints: number): { heure: string | null; creneau: string | null; colis: number | null } {
   const { resultat } = infos;
   const h = resultat.horaires;
   const a = parcours(infos)[i];
@@ -30,6 +30,8 @@ export interface InfosFeuille {
   boucle: boolean;
   nom?: string | null;
   entreprise?: string | null;
+  /** Lien « mode livreur » (suivi arrêt par arrêt), ajouté au message. */
+  lienSuivi?: string | null;
 }
 
 /**
@@ -106,8 +108,15 @@ export function texteFeuille(infos: InfosFeuille): string {
     const { heure, creneau, colis } = infosHoraire(infos, i, pts.length);
     const details = [creneau ? `créneau ${creneau}` : null, colis !== null ? `${colis} colis` : null].filter(Boolean).join(', ');
     l.push(`${prefixe} ${libelleCourt(a.label)}${heure ? ` — ${i === 0 ? '' : 'vers '}${heure}` : ''}${details ? ` (${details})` : ''}`);
+    const contact = estDepart || estRetour ? '' : [a.telephone ? `📞 ${a.telephone}` : null, a.note ? `💬 ${a.note}` : null].filter(Boolean).join(' · ');
+    if (contact) l.push(`    ${contact}`);
   });
   const troncons = liensGoogleMaps(infos);
+  if (infos.lienSuivi) {
+    l.push('');
+    l.push('📲 Suivre la tournée (cocher livré / absent, navigation arrêt par arrêt) :');
+    l.push(infos.lienSuivi);
+  }
   l.push('');
   l.push(troncons.length > 1 ? '🧭 Navigation (Google Maps, par tronçon) :' : '🧭 Navigation (Google Maps) :');
   troncons.forEach((t, i) => {
@@ -145,7 +154,7 @@ export function htmlFeuille(infos: InfosFeuille): string {
       ].filter(Boolean).join(' · ');
       return `<tr>
         <td class="num"><span class="pastille${estDepart || estRetour ? ' sombre' : ''}">${repere}</span></td>
-        <td><div class="adr">${esc(a.label)}</div>${role ? `<div class="role">${role}</div>` : ''}${horaire ? `<div class="horaire">${esc(horaire)}</div>` : ''}
+        <td><div class="adr">${esc(a.label)}</div>${role ? `<div class="role">${role}</div>` : ''}${horaire ? `<div class="horaire">${esc(horaire)}</div>` : ''}${livrable && (a.telephone || a.note) ? `<div class="horaire">${[a.telephone ? `Tél. ${esc(a.telephone)}` : '', a.note ? esc(a.note) : ''].filter(Boolean).join(' · ')}</div>` : ''}
             <div class="gps">${a.lat.toFixed(5)}, ${a.lng.toFixed(5)} · <a href="${lienPoint(a)}">ouvrir la carte</a></div></td>
         <td class="case">${livrable ? '<span class="cb"></span>' : ''}</td>
         <td class="obs"></td>

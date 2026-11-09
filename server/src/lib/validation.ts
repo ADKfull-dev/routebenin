@@ -19,6 +19,8 @@ export const arretSchema = z.object({
     .nullable()
     .optional(),
   colis: z.number().int().min(0).max(999).optional(),
+  telephone: z.string().max(30).optional(),
+  note: z.string().max(200).optional(),
 });
 
 export const optimizeSchema = z.object({

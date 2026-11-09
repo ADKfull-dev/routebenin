@@ -5,7 +5,7 @@
  * optionnels. Rend des <li> à placer dans un <Itineraire>.
  */
 import { useRef, useState } from 'react';
-import { ArrowUp, ArrowDown, X, Clock } from 'lucide-react';
+import { ArrowUp, ArrowDown, X, SlidersHorizontal } from 'lucide-react';
 import type { Arret } from '../types';
 import { Etape } from './Itineraire';
 import { libelleCourt } from '../lib/feuilleRoute';
@@ -15,7 +15,7 @@ interface Props {
   destinations: Arret[];
   onReordonner: (nouvelles: Arret[]) => void;
   onSupprimer: (id: string) => void;
-  onModifier: (id: string, modif: Partial<Pick<Arret, 'fenetre' | 'colis'>>) => void;
+  onModifier: (id: string, modif: Partial<Pick<Arret, 'fenetre' | 'colis' | 'telephone' | 'note'>>) => void;
 }
 
 function deplacer<T>(liste: T[], de: number, vers: number): T[] {
@@ -29,9 +29,9 @@ function deplacer<T>(liste: T[], de: number, vers: number): T[] {
 const btnIcone =
   'flex h-8 w-8 items-center justify-center rounded-md text-encre/45 hover:bg-sol hover:text-encre disabled:pointer-events-none disabled:opacity-25';
 
-/** Résumé sous le nom : « 10:00–12:00, 3 colis ». */
+/** Résumé sous le nom : « 10:00–12:00, 3 colis, 97 12 34 56 ». */
 function resume(d: Arret): string | null {
-  const morceaux = [libelleFenetre(d.fenetre), d.colis !== undefined && d.colis !== 1 ? `${d.colis} colis` : null];
+  const morceaux = [libelleFenetre(d.fenetre), d.colis !== undefined && d.colis !== 1 ? `${d.colis} colis` : null, d.telephone || null];
   const r = morceaux.filter(Boolean).join(', ');
   return r || null;
 }
@@ -76,6 +76,32 @@ function Editeur({ arret, onModifier }: { arret: Arret; onModifier: Props['onMod
           onChange={(e) => onModifier(arret.id, { colis: Math.max(0, Math.min(999, Math.round(Number(e.target.value) || 0))) })}
         />
       </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-[10rem_1fr]">
+        <div>
+          <label htmlFor={`${id}-tel`} className="etiquette mb-1">Téléphone</label>
+          <input
+            id={`${id}-tel`}
+            type="tel"
+            inputMode="tel"
+            maxLength={30}
+            className="champ chiffre py-1.5"
+            placeholder="01 97 00 00 00"
+            value={arret.telephone ?? ''}
+            onChange={(e) => onModifier(arret.id, { telephone: e.target.value || undefined })}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${id}-note`} className="etiquette mb-1">Indication pour le livreur</label>
+          <input
+            id={`${id}-note`}
+            maxLength={200}
+            className="champ py-1.5"
+            placeholder="Portail bleu après la pharmacie"
+            value={arret.note ?? ''}
+            onChange={(e) => onModifier(arret.id, { note: e.target.value || undefined })}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -116,11 +142,11 @@ export function StopList({ destinations, onReordonner, onSupprimer, onModifier }
                   type="button"
                   onClick={() => setOuvert(edition ? null : d.id)}
                   aria-expanded={edition}
-                  aria-label={`Créneau et colis pour ${d.label}`}
-                  title="Créneau et colis"
-                  className={`${btnIcone} ${d.fenetre || edition ? '!text-encre' : ''} ${edition ? 'bg-zem-100' : ''}`}
+                  aria-label={`Créneau, colis et contact pour ${d.label}`}
+                  title="Créneau, colis, téléphone"
+                  className={`${btnIcone} ${d.fenetre || d.telephone || d.note || edition ? '!text-encre' : ''} ${edition ? 'bg-zem-100' : ''}`}
                 >
-                  <Clock className="h-4 w-4" />
+                  <SlidersHorizontal className="h-4 w-4" />
                 </button>
                 <button type="button" onClick={() => onReordonner(deplacer(destinations, i, i - 1))} disabled={i === 0} aria-label={`Monter ${d.label}`} className={btnIcone}>
                   <ArrowUp className="h-4 w-4" />

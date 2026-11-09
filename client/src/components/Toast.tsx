@@ -36,7 +36,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const ajouter = useCallback(
     (type: TypeToast, message: string) => {
       const id = Date.now() + Math.random();
-      setToasts((t) => [...t, { id, type, message }]);
+      // Au plus 3 messages à l'écran : les plus anciens cèdent la place.
+      setToasts((t) => [...t.slice(-2), { id, type, message }]);
       setTimeout(() => retirer(id), 4500);
     },
     [retirer],

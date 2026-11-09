@@ -3,12 +3,13 @@
  * WhatsApp, copie du texte, feuille imprimable (PDF) et navigation Google Maps.
  */
 import { useEffect, useState } from 'react';
-import { Copy, FileText, MessageCircle, Navigation, Check } from 'lucide-react';
+import { Copy, FileText, MessageCircle, Navigation, Check, Smartphone } from 'lucide-react';
 import { api } from '../lib/api';
 import { useToast } from './Toast';
 import type { ResultatOptimisation } from '../types';
 import { SECTION } from './ui';
 import { htmlFeuille, liensGoogleMaps, lienWhatsApp, texteFeuille, type InfosFeuille } from '../lib/feuilleRoute';
+import { encoderFeuille, feuilleDepuisResultat, lienLivreur } from '../lib/suivi';
 
 interface Props {
   resultat: ResultatOptimisation;
@@ -34,7 +35,19 @@ export function ExportActions({ resultat, boucle, nom, compact = false }: Props)
     };
   }, []);
 
-  const infos: InfosFeuille = { resultat, boucle, nom, entreprise };
+  // Lien « mode livreur » : la tournée compressée dans l'URL (calcul asynchrone).
+  const [lienSuivi, setLienSuivi] = useState<string | null>(null);
+  useEffect(() => {
+    let annule = false;
+    encoderFeuille(feuilleDepuisResultat({ resultat, boucle, nom, entreprise }))
+      .then((c) => !annule && setLienSuivi(lienLivreur(c)))
+      .catch(() => undefined);
+    return () => {
+      annule = true;
+    };
+  }, [resultat, boucle, nom, entreprise]);
+
+  const infos: InfosFeuille = { resultat, boucle, nom, entreprise, lienSuivi };
   const troncons = liensGoogleMaps(infos);
 
   const copier = async () => {
@@ -68,6 +81,11 @@ export function ExportActions({ resultat, boucle, nom, compact = false }: Props)
         <button type="button" onClick={copier} className="btn-secondaire px-3 py-2 text-sm" aria-label="Copier le texte">
           {copie ? <Check className="h-4 w-4 text-gain" /> : <Copy className="h-4 w-4" />}
         </button>
+        {lienSuivi && (
+          <a href={lienSuivi} target="_blank" rel="noopener noreferrer" className="btn-secondaire px-3 py-2 text-sm" aria-label="Mode livreur sur cet appareil" title="Mode livreur">
+            <Smartphone className="h-4 w-4" />
+          </a>
+        )}
       </div>
     );
   }
@@ -89,6 +107,15 @@ export function ExportActions({ resultat, boucle, nom, compact = false }: Props)
           <Navigation className="h-4 w-4" /> Maps{troncons.length > 1 ? ` 1/${troncons.length}` : ''}
         </a>
       </div>
+      {lienSuivi && (
+        <a href={lienSuivi} target="_blank" rel="noopener noreferrer" className="btn-fantome mt-2 w-full text-sm">
+          <Smartphone className="h-4 w-4" /> Ouvrir le mode livreur sur cet appareil
+        </a>
+      )}
+      <p className="aide mt-2">
+        Le message contient un lien « mode livreur » : le livreur coche chaque arrêt (livré, absent), suit la
+        navigation et vous renvoie son compte-rendu.
+      </p>
       {troncons.length > 1 && (
         <p className="aide mt-2">
           Google Maps accepte peu d’étapes par lien : la tournée est découpée en {troncons.length} parties. Le message

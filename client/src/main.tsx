@@ -8,12 +8,15 @@ import { Dashboard } from './pages/Dashboard';
 import { Optimize } from './pages/Optimize';
 import { History } from './pages/History';
 import { Settings } from './pages/Settings';
+import { Livreur } from './pages/Livreur';
 import { ToastProvider } from './components/Toast';
 import { demarrerPwa } from './lib/pwa';
 
 demarrerPwa();
 
 const router = createHashRouter([
+  // Mode livreur : page plein écran, sans la navigation de l'application.
+  { path: '/livreur', element: <Livreur /> },
   {
     path: '/',
     element: <App />,

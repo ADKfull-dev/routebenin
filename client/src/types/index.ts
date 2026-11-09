@@ -15,6 +15,10 @@ export interface Arret {
   fenetre?: { debut: string | null; fin: string | null } | null;
   /** Nombre de colis à livrer (1 par défaut). */
   colis?: number;
+  /** Téléphone du client (le livreur peut l'appeler). */
+  telephone?: string;
+  /** Indication pour trouver le client (« portail bleu après la pharmacie »). */
+  note?: string;
 }
 
 /** Horaires simulés d'une tournée (heures en secondes depuis minuit). */
