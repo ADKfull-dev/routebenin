@@ -5,10 +5,17 @@ import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { sauvegardeSchema } from '../lib/validation.js';
 import { HttpError } from '../lib/http.js';
+import { contexte } from '../lib/auth.js';
+
+/*
+ * Toutes les requêtes sont filtrées sur l'entreprise du contexte (mode
+ * comptes) ; en mode mono-utilisateur, entrepriseId vaut null partout.
+ */
 
 /** Liste résumée des tournées (pour l'historique), plus récentes d'abord. */
-export async function listerTournees(_req: Request, res: Response): Promise<void> {
+export async function listerTournees(req: Request, res: Response): Promise<void> {
   const tournees = await prisma.tournee.findMany({
+    where: { entrepriseId: contexte(req).entrepriseId },
     orderBy: { creeLe: 'desc' },
     select: {
       id: true,
@@ -26,7 +33,7 @@ export async function listerTournees(_req: Request, res: Response): Promise<void
 
 /** Détail complet d'une tournée (données + résultat désérialisés). */
 export async function obtenirTournee(req: Request, res: Response): Promise<void> {
-  const t = await prisma.tournee.findUnique({ where: { id: req.params.id } });
+  const t = await prisma.tournee.findFirst({ where: { id: req.params.id, entrepriseId: contexte(req).entrepriseId } });
   if (!t) throw new HttpError(404, 'Tournée introuvable.');
 
   res.json({
@@ -64,6 +71,8 @@ export async function sauvegarderTournee(req: Request, res: Response): Promise<v
       gainMetres: resultat.gainMetres,
       gainPourcent: resultat.gainPourcent,
       source: resultat.source,
+      entrepriseId: contexte(req).entrepriseId,
+      auteurId: contexte(req).utilisateur?.id ?? null,
     },
   });
   res.status(201).json({ id: t.id });
@@ -71,23 +80,25 @@ export async function sauvegarderTournee(req: Request, res: Response): Promise<v
 
 /** Supprime une tournée. */
 export async function supprimerTournee(req: Request, res: Response): Promise<void> {
-  try {
-    await prisma.tournee.delete({ where: { id: req.params.id } });
-  } catch {
-    throw new HttpError(404, 'Tournée introuvable.');
-  }
+  const { count } = await prisma.tournee.deleteMany({
+    where: { id: req.params.id, entrepriseId: contexte(req).entrepriseId },
+  });
+  if (count === 0) throw new HttpError(404, 'Tournée introuvable.');
   res.status(204).end();
 }
 
 /** Statistiques agrégées pour le tableau de bord. */
-export async function statistiques(_req: Request, res: Response): Promise<void> {
+export async function statistiques(req: Request, res: Response): Promise<void> {
+  const where = { entrepriseId: contexte(req).entrepriseId };
   const agg = await prisma.tournee.aggregate({
+    where,
     _count: { _all: true },
     _sum: { distanceOptimisee: true, gainMetres: true },
     _avg: { gainPourcent: true },
   });
 
   const dernieres = await prisma.tournee.findMany({
+    where,
     orderBy: { creeLe: 'desc' },
     take: 5,
     select: {

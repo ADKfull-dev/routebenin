@@ -40,10 +40,56 @@ model Tournee {
   gainPourcent       Float
   source             String // "osrm" | "haversine"
 
+  // Mode comptes (COMPTES=oui) : entreprise propriétaire et auteur.
+  // null en mode mono-utilisateur (par défaut).
+  entrepriseId       String?
+  entreprise         Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  auteurId           String?
+
   @@index([creeLe])
+  @@index([entrepriseId, creeLe])
 }
 
-/// Profil unique de l'utilisateur / de l'entreprise (application mono-utilisateur).
+/// Mode comptes : une entreprise cliente (ses tournées, ses réglages, son équipe).
+model Entreprise {
+  id                  String        @id @default(cuid())
+  nom                 String
+  ville               String?
+  prefererOsrm        Boolean       @default(true)
+  minutesParLivraison Int           @default(5)
+  creeLe              DateTime      @default(now())
+  utilisateurs        Utilisateur[]
+  tournees            Tournee[]
+}
+
+/// Mode comptes : une personne de l'équipe. role = "admin" | "membre".
+model Utilisateur {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  nom          String
+  /// scrypt : « sel:empreinte » en hexadécimal (jamais le mot de passe).
+  motDePasse   String
+  role         String     @default("membre")
+  entrepriseId String
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  sessions     Session[]
+  creeLe       DateTime   @default(now())
+
+  @@index([entrepriseId])
+}
+
+/// Session de connexion. id = SHA-256 du jeton du cookie (le jeton n'est pas stocké).
+model Session {
+  id            String      @id
+  utilisateurId String
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  expireLe      DateTime
+  creeLe        DateTime    @default(now())
+
+  @@index([utilisateurId])
+}
+
+/// Profil unique (mode mono-utilisateur, par défaut). En mode comptes : Entreprise + Utilisateur.
 model Profil {
   id            String  @id @default("profil")
   nomUtilisateur String?

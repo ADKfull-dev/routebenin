@@ -88,3 +88,33 @@ export const profilSchema = z.object({
 export type OptimizeInput = z.infer<typeof optimizeSchema>;
 export type SauvegardeInput = z.infer<typeof sauvegardeSchema>;
 export type ProfilInput = z.infer<typeof profilSchema>;
+
+/* ---------- Comptes (mode COMPTES=oui) ---------- */
+
+const email = z.string().trim().toLowerCase().email('Adresse e-mail invalide.').max(160);
+const motDePasse = z.string().min(8, 'Le mot de passe doit faire au moins 8 caractères.').max(200);
+const nomPersonne = z.string().trim().min(1, 'Indiquez un nom.').max(120);
+
+export const inscriptionSchema = z.object({
+  entreprise: z.string().trim().min(1, 'Indiquez le nom de l’entreprise.').max(120),
+  nom: nomPersonne,
+  email,
+  motDePasse,
+});
+
+export const connexionSchema = z.object({
+  email,
+  motDePasse: z.string().min(1, 'Indiquez le mot de passe.').max(200),
+});
+
+export const membreSchema = z.object({
+  nom: nomPersonne,
+  email,
+  motDePasse,
+  role: z.enum(['admin', 'membre']).optional().default('membre'),
+});
+
+export const changementMotDePasseSchema = z.object({
+  actuel: z.string().min(1).max(200),
+  nouveau: motDePasse,
+});

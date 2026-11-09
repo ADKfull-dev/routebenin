@@ -13,8 +13,33 @@ import {
   statistiques,
 } from '../controllers/tournees.js';
 import { obtenirProfil, mettreAJourProfil } from '../controllers/profil.js';
+import {
+  ajouterMembre,
+  changerMotDePasse,
+  connexion,
+  deconnexion,
+  etatSession,
+  inscription,
+  listerEquipe,
+  retirerMembre,
+} from '../controllers/comptes.js';
+import { exigerSession } from '../lib/auth.js';
 
 export const apiRouter = Router();
+
+// Comptes (publics : avant le contrôle de session)
+apiRouter.get('/auth/etat', asyncHandler(etatSession));
+apiRouter.post('/auth/inscription', asyncHandler(inscription));
+apiRouter.post('/auth/connexion', asyncHandler(connexion));
+apiRouter.post('/auth/deconnexion', asyncHandler(deconnexion));
+
+// Tout le reste : session obligatoire en mode comptes (COMPTES=oui).
+apiRouter.use(asyncHandler(exigerSession));
+
+apiRouter.put('/auth/mot-de-passe', asyncHandler(changerMotDePasse));
+apiRouter.get('/equipe', asyncHandler(listerEquipe));
+apiRouter.post('/equipe', asyncHandler(ajouterMembre));
+apiRouter.delete('/equipe/:id', asyncHandler(retirerMembre));
 
 // Géocodage
 apiRouter.get('/geocode', asyncHandler(rechercherAdresse));

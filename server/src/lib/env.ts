@@ -39,6 +39,18 @@ export const env = {
     'RouteBenin/1.0 (projet de livraison; contact: exemple@routebenin.bj)',
   ),
 
+  /**
+   * Comptes et entreprises (« oui ») : connexion obligatoire, chaque entreprise
+   * ne voit que ses tournées. « non » (défaut) : application mono-utilisateur.
+   */
+  COMPTES: lire('COMPTES', 'non') === 'oui',
+
+  /** Mode comptes : création libre d'un compte entreprise (« ouvertes ») ou non. */
+  INSCRIPTIONS_OUVERTES: lire('INSCRIPTIONS', 'ouvertes') !== 'fermees',
+
+  /** Cookie de session réservé au https (à activer derrière un proxy https). */
+  COOKIE_SECURISE: lire('COOKIE_SECURISE', 'non') === 'oui',
+
   /** Pays privilégié pour le géocodage (codes ISO séparés par des virgules). */
   GEOCODE_COUNTRYCODES: lire('GEOCODE_COUNTRYCODES', 'bj'),
 } as const;
