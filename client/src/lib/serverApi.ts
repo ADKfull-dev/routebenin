@@ -11,7 +11,12 @@ import {
   type ResumeTournee,
   type SauvegardePayload,
   type StatsDashboard,
+  type EtatSession,
+  type Membre,
 } from './apiTypes';
+
+/** Émis quand le serveur répond 401 : la session a expiré (voir session.tsx). */
+export const EVENEMENT_SESSION_EXPIREE = 'routebenin:session-expiree';
 
 async function requete<T>(url: string, options?: RequestInit): Promise<T> {
   let reponse: Response;
@@ -30,6 +35,9 @@ async function requete<T>(url: string, options?: RequestInit): Promise<T> {
     data = await reponse.json();
   } catch {
     /* pas de corps JSON */
+  }
+  if (reponse.status === 401 && !url.startsWith('/auth/')) {
+    window.dispatchEvent(new Event(EVENEMENT_SESSION_EXPIREE));
   }
   if (!reponse.ok) {
     throw new ApiError((data as { erreur?: string })?.erreur ?? 'Une erreur est survenue.');
@@ -68,4 +76,15 @@ export const serverApi: ApiClient = {
     requete<{ profil: Profil }>('/profil', { method: 'PUT', body: JSON.stringify(payload) }).then(
       (r) => r.profil,
     ),
+
+  etatSession: () => requete<EtatSession>('/auth/etat'),
+  connexion: (email, motDePasse) =>
+    requete<unknown>('/auth/connexion', { method: 'POST', body: JSON.stringify({ email, motDePasse }) }).then(() => undefined),
+  inscription: (d) => requete<unknown>('/auth/inscription', { method: 'POST', body: JSON.stringify(d) }).then(() => undefined),
+  deconnexion: () => requete<void>('/auth/deconnexion', { method: 'POST' }),
+  changerMotDePasse: (actuel, nouveau) =>
+    requete<void>('/auth/mot-de-passe', { method: 'PUT', body: JSON.stringify({ actuel, nouveau }) }),
+  listerEquipe: () => requete<{ membres: Membre[] }>('/equipe').then((r) => r.membres),
+  ajouterMembre: (d) => requete<{ membre: Membre }>('/equipe', { method: 'POST', body: JSON.stringify(d) }).then((r) => r.membre),
+  retirerMembre: (id) => requete<void>(`/equipe/${id}`, { method: 'DELETE' }),
 };

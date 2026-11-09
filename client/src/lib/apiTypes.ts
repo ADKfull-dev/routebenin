@@ -70,6 +70,26 @@ export interface SauvegardePayload {
   resultat: ResultatOptimisation;
 }
 
+/** Mode comptes (serveur avec COMPTES=oui). */
+export interface UtilisateurSession {
+  id: string;
+  nom: string;
+  email: string;
+  role: 'admin' | 'membre';
+}
+
+export interface EtatSession {
+  /** false : application mono-utilisateur (pas de connexion). */
+  comptes: boolean;
+  inscriptionsOuvertes: boolean;
+  utilisateur: UtilisateurSession | null;
+  entreprise: { id: string; nom: string } | null;
+}
+
+export interface Membre extends UtilisateurSession {
+  creeLe: string;
+}
+
 /** Contrat commun aux deux implémentations. */
 export interface ApiClient {
   geocoder(q: string): Promise<ResultatGeocodage[]>;
@@ -81,4 +101,14 @@ export interface ApiClient {
   supprimerTournee(id: string): Promise<void>;
   obtenirProfil(): Promise<Profil>;
   mettreAJourProfil(payload: Partial<Omit<Profil, 'id'>>): Promise<Profil>;
+
+  // Comptes (le mode navigateur répond { comptes: false })
+  etatSession(): Promise<EtatSession>;
+  connexion(email: string, motDePasse: string): Promise<void>;
+  inscription(d: { entreprise: string; nom: string; email: string; motDePasse: string }): Promise<void>;
+  deconnexion(): Promise<void>;
+  changerMotDePasse(actuel: string, nouveau: string): Promise<void>;
+  listerEquipe(): Promise<Membre[]>;
+  ajouterMembre(d: { nom: string; email: string; motDePasse: string; role: 'admin' | 'membre' }): Promise<Membre>;
+  retirerMembre(id: string): Promise<void>;
 }

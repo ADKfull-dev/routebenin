@@ -114,6 +114,14 @@ export function Dashboard() {
           </>
         )
       )}
+
+      <p className="mt-10 text-sm text-encre/55">
+        Pour présenter l’outil à un client ou à un partenaire :{' '}
+        <Link to="/presentation" className="font-semibold text-encre underline-offset-4 hover:underline">
+          page de présentation
+        </Link>
+        .
+      </p>
     </div>
   );
 }

@@ -19,4 +19,7 @@ export type {
   StatsDashboard,
   ResumeTournee,
   Profil,
+  EtatSession,
+  Membre,
+  UtilisateurSession,
 } from './apiTypes';

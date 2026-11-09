@@ -2,10 +2,44 @@
  * App — ossature : rail de navigation encre (desktop), barre inférieure
  * (mobile) et zone de contenu (Outlet).
  */
-import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Route, History as HistoryIcon, Settings as SettingsIcon } from 'lucide-react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Route, History as HistoryIcon, Settings as SettingsIcon, LogOut } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { BandeauxPwa, BoutonInstaller } from './components/Pwa';
+import { useSession } from './lib/session';
+
+/** Mode comptes : initiales de la personne connectée + déconnexion. */
+function Compte({ compact = false }: { compact?: boolean }) {
+  const { etat, deconnecter } = useSession();
+  const naviguer = useNavigate();
+  const u = etat?.utilisateur;
+  if (!u) return null;
+  const initiales = u.nom
+    .split(/\s+/)
+    .map((m) => m[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+  const sortir = async () => {
+    await deconnecter();
+    naviguer('/connexion', { replace: true });
+  };
+  const titre = `${u.nom} — ${etat?.entreprise?.nom ?? ''}`;
+  return compact ? (
+    <button type="button" onClick={sortir} title={`Se déconnecter (${titre})`} aria-label="Se déconnecter" className="flex h-9 w-9 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white">
+      <LogOut className="h-5 w-5" />
+    </button>
+  ) : (
+    <div className="mt-auto flex flex-col items-center gap-2 pb-1">
+      <span title={titre} className="chiffre flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white">
+        {initiales}
+      </span>
+      <button type="button" onClick={sortir} title="Se déconnecter" aria-label="Se déconnecter" className="flex h-9 w-9 items-center justify-center rounded-md text-white/55 hover:bg-white/[0.06] hover:text-white">
+        <LogOut className="h-[18px] w-[18px]" />
+      </button>
+    </div>
+  );
+}
 
 interface Lien {
   to: string;
@@ -67,6 +101,7 @@ export function App() {
             </NavLink>
           ))}
         </nav>
+        <Compte />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -76,7 +111,10 @@ export function App() {
             <Marque className="h-8 w-8" />
             <span className="font-titre text-lg font-semibold tracking-tight text-white">RouteBénin</span>
           </NavLink>
-          <BoutonInstaller compact />
+          <div className="flex items-center gap-1">
+            <BoutonInstaller compact />
+            <Compte compact />
+          </div>
         </header>
 
         <BandeauxPwa />

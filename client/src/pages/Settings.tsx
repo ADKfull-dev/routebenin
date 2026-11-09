@@ -8,12 +8,17 @@ import { Skeleton, Spinner, SECTION, EnTetePage } from '../components/ui';
 import { useToast } from '../components/Toast';
 import { CarteApplication } from '../components/Pwa';
 import { testerServeurOsrm } from '../lib/localApi';
+import { Equipe } from '../components/Equipe';
+import { useSession } from '../lib/session';
 
 /** En mode navigateur, l'appareil appelle OSRM lui-même : le serveur se règle ici. */
 const MODE_STATIQUE = import.meta.env.VITE_STATIC === 'true';
 
 export function Settings() {
   const toast = useToast();
+  const { etat, rafraichir } = useSession();
+  // Mode comptes : seul l'administrateur règle l'entreprise.
+  const lectureSeule = !!etat?.utilisateur && etat.utilisateur.role !== 'admin';
   const [profil, setProfil] = useState<Profil | null>(null);
   const [enregistrement, setEnregistrement] = useState(false);
   const [test, setTest] = useState<'en-cours' | 'ok' | 'echec' | null>(null);
@@ -49,6 +54,7 @@ export function Settings() {
         serveurOsrm: profil.serveurOsrm?.trim() || null,
       });
       setProfil(mis);
+      if (etat?.comptes) void rafraichir(); // nom affiché dans la navigation
       toast.succes('Paramètres enregistrés.');
     } catch (e) {
       toast.erreur(e instanceof ApiError ? e.message : 'Enregistrement impossible.');
@@ -60,7 +66,14 @@ export function Settings() {
   const champ = (id: 'nomUtilisateur' | 'nomEntreprise' | 'ville', libelle: string, aide: string, placeholder: string) => (
     <div>
       <label htmlFor={id} className="etiquette mb-1.5">{libelle}</label>
-      <input id={id} className="champ" value={profil?.[id] ?? ''} onChange={(e) => maj(id, e.target.value)} placeholder={placeholder} />
+      <input
+        id={id}
+        className="champ disabled:bg-sol disabled:text-encre/60"
+        value={profil?.[id] ?? ''}
+        onChange={(e) => maj(id, e.target.value)}
+        placeholder={placeholder}
+        disabled={lectureSeule && id !== 'nomUtilisateur'}
+      />
       <p className="aide mt-1">{aide}</p>
     </div>
   );
@@ -84,6 +97,7 @@ export function Settings() {
 
           <section className={SECTION}>
             <h2 className="mb-4 text-lg font-semibold">Calcul des tournées</h2>
+            {lectureSeule && <p className="aide -mt-2 mb-4">Réglages de l’entreprise : modifiables par l’administrateur.</p>}
             <div className="mb-5">
               <label htmlFor="minutes" className="etiquette mb-1.5">Temps par livraison</label>
               <div className="flex items-center gap-3">
@@ -93,7 +107,8 @@ export function Settings() {
                   inputMode="numeric"
                   min={0}
                   max={120}
-                  className="champ chiffre w-24"
+                  className="champ chiffre w-24 disabled:bg-sol"
+                  disabled={lectureSeule}
                   value={profil.minutesParLivraison}
                   onChange={(e) => maj('minutesParLivraison', Math.max(0, Math.min(120, Math.round(Number(e.target.value) || 0))))}
                 />
@@ -117,6 +132,7 @@ export function Settings() {
                 aria-checked={profil.prefererOsrm}
                 aria-label="Utiliser les routes réelles"
                 onClick={() => maj('prefererOsrm', !profil.prefererOsrm)}
+                disabled={lectureSeule}
                 className={`relative mt-1 h-7 w-12 shrink-0 rounded-full transition-colors ${profil.prefererOsrm ? 'bg-encre' : 'bg-ligne'}`}
               >
                 <span className={`absolute left-0 top-1 h-5 w-5 rounded-full transition-transform ${profil.prefererOsrm ? 'translate-x-6 bg-zem' : 'translate-x-1 bg-white'}`} />
@@ -152,6 +168,8 @@ export function Settings() {
               </div>
             )}
           </section>
+
+          <Equipe />
 
           <CarteApplication />
 

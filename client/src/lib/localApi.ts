@@ -338,6 +338,11 @@ async function nominatim(q: string): Promise<ResultatGeocodage[]> {
   return data.map((x) => ({ label: x.display_name, lat: Number(x.lat), lng: Number(x.lon) }));
 }
 
+/** Les comptes demandent le serveur (mode full-stack, COMPTES=oui). */
+async function sansComptes(): Promise<never> {
+  throw new ApiError('Les comptes nécessitent le serveur RouteBénin (mode full-stack).');
+}
+
 /* ---------- Implémentation ---------- */
 export const localApi: ApiClient = {
   async geocoder(q: string): Promise<ResultatGeocodage[]> {
@@ -420,6 +425,17 @@ export const localApi: ApiClient = {
   async obtenirProfil(): Promise<Profil> {
     return lireProfil();
   },
+
+  async etatSession() {
+    return { comptes: false, inscriptionsOuvertes: false, utilisateur: null, entreprise: null };
+  },
+  connexion: sansComptes,
+  inscription: sansComptes,
+  deconnexion: async () => undefined,
+  changerMotDePasse: sansComptes,
+  listerEquipe: sansComptes,
+  ajouterMembre: sansComptes,
+  retirerMembre: sansComptes,
 
   async mettreAJourProfil(payload: Partial<Omit<Profil, 'id'>>): Promise<Profil> {
     const maj = { ...lireProfil(), ...payload, id: 'profil' };

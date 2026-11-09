@@ -26,7 +26,8 @@ pour d'autres villes et pays.
 - **Comparaison avant/après** : tracé de l'ordre de saisie (rouge pointillé) et tracé optimisé (bleu) superposés, avec animation de l'itinéraire.
 - **Multi-livreurs (1 à 6)** : répartition équilibrée des adresses entre plusieurs livreurs partant du même point, une couleur par livreur.
 - **Envoi au livreur** : message WhatsApp prêt à partager, copie du texte, feuille de route imprimable/PDF (cases « Livré », observations, signature) et liens de navigation Google Maps.
-- **Paramètres** : profil utilisateur/entreprise, préférence distances routières.
+- **Paramètres** : profil utilisateur/entreprise, préférence distances routières, serveur OSRM personnel (mode navigateur), équipe (mode comptes).
+- **Comptes et entreprises** (optionnel, `COMPTES=oui`) : plusieurs entreprises clientes isolées, administrateur et membres, et page de présentation publique (voir « Version multi-entreprises »).
 - **Tout le Bénin** : recherche hors ligne et tolérante aux fautes dans un répertoire national (12 départements, 77 communes, ~12 500 villes, villages, hameaux et quartiers OpenStreetMap, régénérable avec `npm run lieux-benin` dans `server/`), en plus des quartiers du Grand Cotonou et de Nominatim. La carte s'ouvre sur la ville du profil ; un exemple interurbain (Zou et Collines, au départ de Bohicon) complète celui de Cotonou. Sans service routier, les durées sont estimées à 25 km/h en ville et jusqu'à 65 km/h entre villes.
 - **Mode livreur** : le message WhatsApp contient un lien qui ouvre la tournée sur le téléphone du livreur, sans compte ni installation (la tournée voyage compressée dans le lien, ~600 caractères pour 14 arrêts). Prochain arrêt en grand (« Y aller » dans Google Maps, « Appeler » le client), boutons **Livré** / **Absent** avec motif, arrêts restants réordonnables, **ré-optimisation du reste depuis la position GPS** (heures de passage recalculées), annulation, et **compte-rendu** renvoyé au responsable sur WhatsApp. L'avancement est enregistré sur le téléphone et fonctionne hors ligne.
 - **Contact client** : téléphone et indication (« portail bleu après la pharmacie ») par livraison, repris dans le message, le PDF et le mode livreur.
@@ -252,6 +253,44 @@ l'application. Ensuite :
 - Paramètres → *Application et hors-ligne* : état, espace utilisé, vider le cache.
 - Pas de pré-téléchargement massif des tuiles : interdit par la politique
   d'usage d'OpenStreetMap.
+
+---
+
+## 🏢 Version multi-entreprises (comptes)
+
+Le serveur peut accueillir **plusieurs entreprises clientes**, chacune avec son
+équipe. Activez-le dans `server/.env` :
+
+```bash
+COMPTES=oui            # connexion obligatoire
+INSCRIPTIONS=ouvertes  # « fermees » : pas de création de compte libre
+COOKIE_SECURISE=oui    # derrière un proxy https
+```
+
+- **Créer un compte entreprise** depuis la page de connexion : la personne en
+  devient l'**administrateur**. Au passage du mode mono-utilisateur aux comptes,
+  la première entreprise créée récupère l'historique et les réglages existants.
+- **Équipe** (Paramètres) : l'administrateur ajoute des membres (nom, e-mail,
+  mot de passe à leur transmettre, rôle) ou les retire ; chacun peut changer son
+  mot de passe (les autres appareils sont alors déconnectés).
+- **Isolation** : tournées, statistiques et réglages sont filtrés sur
+  l'entreprise de la personne connectée ; une tournée d'une autre entreprise
+  répond « introuvable ». Seul l'administrateur modifie les réglages communs
+  (temps par livraison, ville, routes réelles).
+- **Sécurité** : mots de passe hachés avec scrypt (sel aléatoire, comparaison
+  en temps constant), session dans un cookie `HttpOnly; SameSite=Lax` dont la
+  base ne garde que l'empreinte SHA-256, 30 jours ; 10 essais de connexion
+  ratés par quart d'heure au plus (IP + e-mail).
+- Tests : `server/src/comptes.test.ts` (inscription, isolation, rôles,
+  tentatives, mot de passe) sur une base SQLite jetable.
+
+Sans `COMPTES=oui`, rien ne change (application mono-utilisateur), et la démo
+GitHub Pages, 100 % navigateur, reste sans compte.
+
+**Page de présentation** (`#/presentation`, publique) : à montrer à une
+entreprise de livraison (problème, fonctions, chiffres de l'exemple, « essayer
+l'exemple »). Boutons de contact facultatifs, fixés à la compilation :
+`VITE_CONTACT_WHATSAPP=229XXXXXXXX` et `VITE_CONTACT_EMAIL=…`.
 
 ---
 
